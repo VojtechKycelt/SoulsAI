@@ -85,11 +85,11 @@ void ASoulsPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 void ASoulsPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	/*AnimInstance = Cast<USoulsCharacterAnimInstance>(GetMesh()->GetAnimInstance());
+	AnimInstance = Cast<USoulsPlayerCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!AnimInstance)
 	{
-		UE_LOG(LogSoulsGameDiploma, Error, TEXT("AnimInstance is null"));
-	}*/
+		UE_LOG(LogSoulsAI, Error, TEXT("AnimInstance is null"));
+	}
 
 }
 
@@ -102,8 +102,8 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 
 bool ASoulsPlayerCharacter::CanPerformAction()
 {
-	/*if (!AnimInstance) return false;
-	if (AnimInstance->isRolling || AnimInstance->isAnimating || GetCharacterMovement()->IsFalling()) return false;*/
+	if (!AnimInstance) return false;
+	if (AnimInstance->isRolling || AnimInstance->isAnimating || GetCharacterMovement()->IsFalling()) return false;
 	return true;
 }
 
@@ -127,8 +127,8 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 {
 	if (CanPerformAction())
 	{
-		//AnimInstance->Montage_Play(RollAnimMontage);
-		////PlayAnimMontage(RollAnimMontage);
+		AnimInstance->Montage_Play(RollAnimMontage);
+		//PlayAnimMontage(RollAnimMontage);
 	}
 }
 
@@ -136,8 +136,8 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
 	if (CanPerformAction())
 	{
-		//AnimInstance->Montage_Play(LightAttackAnimMontage);
-		////PlayAnimMontage(LightAttackAnimMontage);
+		AnimInstance->Montage_Play(LightAttackAnimMontage);
+		//PlayAnimMontage(LightAttackAnimMontage);
 	}
 }
 
@@ -145,8 +145,8 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 {
 	if (CanPerformAction())
 	{
-		//AnimInstance->Montage_Play(HeavyAttackAnimMontage);
-		////PlayAnimMontage(HeavyAttackAnimMontage);
+		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
+		//PlayAnimMontage(HeavyAttackAnimMontage);
 	}
 }
 

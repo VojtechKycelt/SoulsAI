@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-//#include "SoulsCharacterAnimInstance.h"
+#include "SoulsPlayerCharacterAnimInstance.h"
 #include "Logging/LogMacros.h"
 #include "SoulsPlayerCharacter.generated.h"
 
@@ -58,7 +58,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Animation")
 	UAnimMontage* HeavyAttackAnimMontage;
 
-	//USoulsCharacterAnimInstance* AnimInstance;
+	USoulsPlayerCharacterAnimInstance* AnimInstance;
 
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
