@@ -52,7 +52,13 @@ protected:
 
 	/** Animation Montages to easily and correctly assign animation to correct action. */
 	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* RollAnimMontage;
+	UAnimMontage* RollForwardAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	UAnimMontage* RollLeftAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	UAnimMontage* RollRightAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation")
+	UAnimMontage* DodgeAnimMontage;
 	UPROPERTY(EditAnywhere, Category = "Animation")
 	UAnimMontage* LightAttackAnimMontage;
 	UPROPERTY(EditAnywhere, Category = "Animation")
