@@ -17,11 +17,11 @@ class SOULSAI_API USoulsPlayerCharacterAnimInstance : public UAnimInstance
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character State")
-	bool isRolling;
+	bool bIsRolling = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character State")
-	bool isAttacking;
+	bool bIsAttacking = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character State")
-	bool isAnimating;
+	bool bIsAnimating = false;
 };

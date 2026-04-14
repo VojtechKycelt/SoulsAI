@@ -33,7 +33,6 @@ class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
 	UCameraComponent* FollowCamera;
 
 protected:
-
 	/** Input Actions for binding to correct functions. */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* JumpAction;

@@ -88,7 +88,7 @@ void ASoulsPlayerCharacter::BeginPlay()
 	AnimInstance = Cast<USoulsPlayerCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 	if (!AnimInstance)
 	{
-		UE_LOG(LogSoulsAI, Error, TEXT("AnimInstance is null"));
+		UE_LOG(LogSoulsAI, Error, TEXT("[ASoulsPlayerCharacter] AnimInstance is null"));
 	}
 
 }
@@ -103,7 +103,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 bool ASoulsPlayerCharacter::CanPerformAction()
 {
 	if (!AnimInstance) return false;
-	if (AnimInstance->isRolling || AnimInstance->isAnimating || GetCharacterMovement()->IsFalling()) return false;
+	if (AnimInstance->bIsRolling || AnimInstance->bIsAnimating || GetCharacterMovement()->IsFalling()) return false;
 	return true;
 }
 
