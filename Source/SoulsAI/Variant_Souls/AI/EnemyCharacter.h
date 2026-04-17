@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "Enums/GoalCommon.h"
 #include "GameFramework/Character.h"
+#include "Logging/LogMacros.h"
 #include "EnemyCharacter.generated.h"
 
 class UWidgetComponent;

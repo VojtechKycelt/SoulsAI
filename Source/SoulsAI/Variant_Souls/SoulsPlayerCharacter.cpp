@@ -47,6 +47,9 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	
+	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
+
 }
 
 // Called to bind functionality to input
@@ -145,11 +148,28 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
-	if (CanPerformAction())
+	if (!AnimInstance) return;
+	if (AnimInstance->bIsRolling || GetCharacterMovement()->IsFalling()) return;
+	
+	if (! AnimInstance->IsAnyMontagePlaying()) 
 	{
 		AnimInstance->Montage_Play(LightAttackAnimMontage);
-		//PlayAnimMontage(LightAttackAnimMontage);
+	} else if (bComboInputWindowOpen)
+		{
+		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] bComboInputWindowOpen - should continue combo"));
+
+		//AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
+		bShouldContinueCombo = true;
 	}
+	
+	
+	
+	
+	// if (CanPerformAction())
+	// {
+	// 	AnimInstance->Montage_Play(LightAttackAnimMontage);
+	// 	//PlayAnimMontage(LightAttackAnimMontage);
+	// }
 }
 
 void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
@@ -161,6 +181,17 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 	}
 }
 
+void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] AttackMontageEnded"));
+	if (bShouldContinueCombo)
+	{
+		//AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
+		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] Montage_JumpToSection"));
+		//bShouldContinueCombo = false;
+	}
+}
+
 void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
 {
 	if (CanPerformAction())
@@ -168,6 +199,7 @@ void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
 		Jump();
 	}
 }
+
 
 void ASoulsPlayerCharacter::DoMove(float Right, float Forward)
 {
@@ -209,6 +241,16 @@ void ASoulsPlayerCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void ASoulsPlayerCharacter::CheckCombo()
+{
+	if (bShouldContinueCombo)
+	{
+		AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
+		bShouldContinueCombo = false;
+		bComboInputWindowOpen = false;
+	}
 }
 
 

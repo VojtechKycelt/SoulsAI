@@ -63,8 +63,27 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Animation")
 	UAnimMontage* HeavyAttackAnimMontage;
 
+	/** Names of the AnimMontage sections that correspond to each stage of the combo attack */
+	UPROPERTY(EditAnywhere, Category="Melee Attack|Combo")
+	TArray<FName> ComboSectionNames;
+	
 	USoulsPlayerCharacterAnimInstance* AnimInstance;
-
+	
+	/** Attack montage ended delegate */
+	FOnMontageEnded OnAttackMontageEnded;
+	
+public:
+	/** Whether mid-combo attack input press plays another section of combo montage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bComboInputWindowOpen = false;
+	
+	/** Current index of combo animation montage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CurrentComboIndex = 0;
+	
+	bool bShouldContinueCombo = false;
+	
+protected:
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -91,6 +110,10 @@ protected:
 
 	/** Wrapper function for Jump to decline jump if there is conditions preventing it (like rolling) */
 	void SoulsJump(const FInputActionValue& Value);
+	
+	
+	
+	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 public:
 	// Sets default values for this character's properties
@@ -111,6 +134,9 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void DoJumpEnd();
+	
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void CheckCombo();
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
