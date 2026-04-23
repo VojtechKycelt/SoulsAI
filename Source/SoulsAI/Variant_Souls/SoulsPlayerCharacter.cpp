@@ -154,11 +154,12 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 	if (! AnimInstance->IsAnyMontagePlaying()) 
 	{
 		AnimInstance->Montage_Play(LightAttackAnimMontage);
+		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
 	} else if (bComboInputWindowOpen)
 		{
 		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] bComboInputWindowOpen - should continue combo"));
 
-		//AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
+		
 		bShouldContinueCombo = true;
 	}
 	
@@ -184,12 +185,9 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] AttackMontageEnded"));
-	if (bShouldContinueCombo)
-	{
-		//AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
-		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] Montage_JumpToSection"));
-		//bShouldContinueCombo = false;
-	}
+	CurrentComboIndex = 0;
+	bShouldContinueCombo = false;
+	bComboInputWindowOpen = false;
 }
 
 void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
@@ -247,9 +245,19 @@ void ASoulsPlayerCharacter::CheckCombo()
 {
 	if (bShouldContinueCombo)
 	{
-		AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
-		bShouldContinueCombo = false;
-		bComboInputWindowOpen = false;
+		if (CurrentComboIndex == 0)
+		{
+			AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
+			bShouldContinueCombo = false;
+			bComboInputWindowOpen = false;
+			CurrentComboIndex = 1;
+		} else if (CurrentComboIndex == 1)
+		{
+			AnimInstance->Montage_JumpToSection("Attack3", LightAttackAnimMontage);
+			bShouldContinueCombo = false;
+			bComboInputWindowOpen = false;
+			CurrentComboIndex = 2;
+		}
 	}
 }
 
