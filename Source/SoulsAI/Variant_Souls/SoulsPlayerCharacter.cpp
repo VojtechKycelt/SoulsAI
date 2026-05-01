@@ -4,24 +4,19 @@
 #include "Variant_Souls/SoulsPlayerCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "AI/EnemyCharacter.h"
 #include "SoulsAI.h"
 
 // Sets default values
 ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	//PrimaryActorTick.bCanEverTick = true;
-
-	// Set size for collision capsule
-	//GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -49,7 +44,6 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	FollowCamera->bUsePawnControlRotation = false;
 	
 	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
-
 }
 
 // Called to bind functionality to input
@@ -61,7 +55,10 @@ void ASoulsPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		// Jumping
 		// EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		// EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::SoulsJump);
+		// EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::SoulsJump);
+		
+		// Camera
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::CameraTargetLock);
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Move);
@@ -99,7 +96,47 @@ void ASoulsPlayerCharacter::BeginPlay()
 // Called every frame
 void ASoulsPlayerCharacter::Tick(float DeltaTime)
 {
-	//Super::Tick(DeltaTime);
+	switch (CameraState)
+	{
+	case ECameraState::Default:
+		FollowCamera->SetWorldRotation(
+			FMath::RInterpTo(
+				FollowCamera->GetComponentRotation(), 
+				CameraBoom->PreviousDesiredRot, 
+				DeltaTime, 
+				5.f));
+		break;
+	case ECameraState::Locked:
+		if (!LockedTarget || FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius)
+		{
+			TryLockOn();
+			break;
+		}
+		
+		// Character faces enemy
+		FVector ToEnemy = LockedTarget->GetActorLocation() - GetActorLocation();
+		ToEnemy.Z = 0.f;
+		ToEnemy.Normalize();
+		SetActorRotation(
+			FMath::RInterpTo(
+				GetActorRotation(), 
+				ToEnemy.Rotation(),
+				DeltaTime, 
+				GetCharacterMovement()->RotationRate.Yaw / 100.f));
+		
+		// Camera looks at enemy
+		const FRotator FollowCamTargetRotation = FRotator((LockedTarget->GetActorLocation() - FollowCamera->GetComponentLocation()).Rotation());
+		FollowCamera->SetWorldRotation(FMath::RInterpTo(FollowCamera->GetComponentRotation(), FollowCamTargetRotation, DeltaTime, 10.f));
+		
+		// Camera positioned behind players back, slightly up (- pitch)
+		FRotator CamBoomTargetRotation = FRotator((LockedTarget->GetActorLocation() - GetActorLocation()).Rotation());
+		CamBoomTargetRotation.Pitch -= 30;
+		Controller->SetControlRotation(FMath::RInterpTo(Controller->GetControlRotation(), CamBoomTargetRotation, DeltaTime, 10.f));
+		
+		break;
+	default:
+		break;
+	}
 
 }
 
@@ -109,6 +146,92 @@ bool ASoulsPlayerCharacter::CanPerformAction()
 	if (AnimInstance->bIsRolling || AnimInstance->bIsAnimating || GetCharacterMovement()->IsFalling()) return false;
 	return true;
 }
+
+void ASoulsPlayerCharacter::FindLockOnTarget()
+{
+    TArray<AActor*> OverlappedActors;
+    TArray<AActor*> ActorsToIgnore = { this };
+
+    // Get all nearby enemies with sphere overlap
+    UKismetSystemLibrary::SphereOverlapActors(
+        GetWorld(),
+        GetActorLocation(),
+        LockOnRadius,
+        TArray<TEnumAsByte<EObjectTypeQuery>>(),
+        AEnemyCharacter::StaticClass(),   // only grab EnemyBase and children
+        ActorsToIgnore,
+        OverlappedActors
+    );
+
+    if (OverlappedActors.IsEmpty())
+    {
+        LockedTarget = nullptr;
+        return;
+    }
+	
+	// Iterate through all overlapped actors and get the one closest to the cone center
+    AActor* BestTarget = nullptr;
+    float BestDot = -1.f; // dot product: 1 = directly ahead, -1 = directly behind
+    for (AActor* Actor : OverlappedActors)
+    {
+        // Direction from player to this enemy
+        const FVector ToEnemy = (Actor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    	
+        // Dot product tells us how aligned they are with camera forward
+        const float Dot = FVector::DotProduct(FollowCamera->GetForwardVector(), ToEnemy);
+
+        // Convert cone half angle to dot product threshold
+        const float ConeThreshold = FMath::Cos(FMath::DegreesToRadians(LockOnConeHalfAngle));
+        if (ConeThreshold > Dot)
+        {
+            continue; // outside the cone, skip
+        }
+
+        // Line trace to check line of sight
+        FHitResult HitResult;
+        const bool bHit = GetWorld()->LineTraceSingleByChannel(
+            HitResult,
+            GetActorLocation(),
+            Actor->GetActorLocation(),
+            ECC_Visibility
+        );
+
+        // If trace hits something that isn't the enemy, it's occluded
+        if (bHit && HitResult.GetActor() != Actor)
+        {
+            continue;
+        }
+
+        // BestDot = most centered in camera view = BestTarget
+        if (Dot > BestDot)
+        {
+            BestDot = Dot;
+            BestTarget = Actor;
+        }
+    }
+
+    LockedTarget = BestTarget;
+}
+
+void ASoulsPlayerCharacter::TryLockOn()
+{
+    if (LockedTarget)
+    {
+        CameraState = ECameraState::Default;
+    	GetCharacterMovement()->bOrientRotationToMovement = true;
+        LockedTarget = nullptr;
+        return;
+    }
+
+    FindLockOnTarget();
+
+    if (LockedTarget)
+    {
+        CameraState = ECameraState::Locked;
+    	GetCharacterMovement()->bOrientRotationToMovement = false;
+    }
+}
+
 
 void ASoulsPlayerCharacter::Move(const FInputActionValue& Value)
 {
@@ -134,14 +257,48 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 			AnimInstance->Montage_Play(DodgeAnimMontage);
 		}
 		else {
-			// - if is camera locked onto enemy?
-			// - - if moving left
-			// - - - AnimInstance->Montage_Play(RollLeftAnimMontage);
-			// - - else if moving right
-			// - - - AnimInstance->Montage_Play(RollRightAnimMontage);
-			// - - else
-			// - - - roll forward
-			AnimInstance->Montage_Play(RollForwardAnimMontage);
+			if (CameraState == ECameraState::Locked)
+			{
+				// get normalized velocity direction
+				FVector Velocity = GetCharacterMovement()->Velocity;
+				Velocity.Z = 0.f;
+				Velocity.Normalize();
+				
+				// dot product tells us how much we're moving in each local direction
+				// ForwardDot: 1.0 = moving forward, -1.0 = moving backward
+				// RightDot:   1.0 = moving right,  -1.0 = moving left
+				float ForwardDot = FVector::DotProduct(GetActorForwardVector(), Velocity);
+				float RightDot = FVector::DotProduct(GetActorRightVector(), Velocity);
+				
+				if (FMath::Abs(RightDot) > FMath::Abs(ForwardDot))
+				{
+					// predominantly moving sideways
+					if (RightDot > 0.f)
+					{
+						AnimInstance->Montage_Play(RollRightAnimMontage);
+					}
+					else
+					{
+						AnimInstance->Montage_Play(RollLeftAnimMontage);
+					}
+				}
+				else
+				{
+					// predominantly moving forward/backward
+					if (ForwardDot >= 0.f)
+					{
+						AnimInstance->Montage_Play(RollForwardAnimMontage);
+					}
+					else
+					{
+						//TODO RollBackwardAnimMontage instead
+						AnimInstance->Montage_Play(DodgeAnimMontage);
+					}
+				}
+			} else
+			{
+				AnimInstance->Montage_Play(RollForwardAnimMontage);
+			}
 		}
 	}
 }
@@ -162,9 +319,6 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 		
 		bShouldContinueCombo = true;
 	}
-	
-	
-	
 	
 	// if (CanPerformAction())
 	// {
@@ -198,30 +352,42 @@ void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
 	}
 }
 
+void ASoulsPlayerCharacter::CameraTargetLock(const FInputActionValue& Value)
+{
+	TryLockOn();
+}
 
 void ASoulsPlayerCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
-		// find out which way is forward
-		const FRotator Rotation = GetController()->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		if (CameraState == ECameraState::Locked) {
+			// Use camera forward projected onto horizontal plane
+			FVector CameraForward = FollowCamera->GetForwardVector();
+			CameraForward.Z = 0.f;
+			CameraForward.Normalize();
+			AddMovementInput(CameraForward, Forward);
+			
+			FVector CameraRight = FollowCamera->GetRightVector();
+			CameraRight.Z = 0.f;
+			CameraRight.Normalize();
+			AddMovementInput(CameraRight, Right);
+		} else {
+			// find out which way is forward, get forward vector, get right vector
+			const FRotator YawRotation(0, GetController()->GetControlRotation().Yaw, 0);
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-
-		// get right vector
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// add movement
-		AddMovementInput(ForwardDirection, Forward);
-		AddMovementInput(RightDirection, Right);
+			// add movement
+			AddMovementInput(ForwardDirection, Forward);
+			AddMovementInput(RightDirection, Right);
+		}
 	}
 }
 
 void ASoulsPlayerCharacter::DoLook(float Yaw, float Pitch)
 {
-	if (GetController() != nullptr)
+	if (GetController() != nullptr && CameraState != ECameraState::Locked)
 	{
 		// add yaw and pitch input to controller
 		AddControllerYawInput(Yaw);

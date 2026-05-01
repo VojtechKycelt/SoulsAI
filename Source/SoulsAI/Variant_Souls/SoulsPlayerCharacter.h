@@ -13,7 +13,14 @@ class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSouls, Log, All);
+
+UENUM(BlueprintType)
+enum class ECameraState : uint8
+{
+	Default     UMETA(DisplayName = "Default"),
+	Locked      UMETA(DisplayName = "Locked"),
+	Cinematic   UMETA(DisplayName = "Cinematic")
+};
 
 /**
 * Player-controllable third person character.
@@ -31,6 +38,21 @@ class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
 	/** Follow camera. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+	
+	UPROPERTY()
+	AActor* LockedTarget = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Lock On")
+	float LockOnRadius = 1500.f;
+
+	UPROPERTY(EditAnywhere, Category = "Lock On")
+	float LockOnConeHalfAngle = 60.f; // degrees
+
+	UFUNCTION()
+	void TryLockOn();
+
+	UFUNCTION()
+	void FindLockOnTarget();
 
 protected:
 	/** Input Actions for binding to correct functions. */
@@ -111,10 +133,13 @@ protected:
 	/** Wrapper function for Jump to decline jump if there is conditions preventing it (like rolling) */
 	void SoulsJump(const FInputActionValue& Value);
 	
-	
+	/** Called for changing camera state */
+	void CameraTargetLock(const FInputActionValue& Value);
 	
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
+	ECameraState CameraState = ECameraState::Default;
 public:
 	// Sets default values for this character's properties
 	ASoulsPlayerCharacter();

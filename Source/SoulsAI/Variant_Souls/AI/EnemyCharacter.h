@@ -11,7 +11,6 @@
 
 class UWidgetComponent;
 class UEnemyAnimInstance;
-DECLARE_LOG_CATEGORY_EXTERN(LogSouls, Log, All);
 
 UCLASS()
 class SOULSAI_API AEnemyCharacter : public ACharacter
