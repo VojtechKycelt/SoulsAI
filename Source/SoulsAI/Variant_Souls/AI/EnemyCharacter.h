@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SelectGoal();
 	
+	/** Attack */
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void Attack();
+	
 	/** HEALTH STATS */
 	
 	// Max amount of health points.
@@ -93,8 +97,21 @@ public:
 	UAnimMontage* StaggerAnimMontage;
 
 	UEnemyAnimInstance* AnimInstance;
+	
+	/** Attack montage ended delegate */
+	FOnMontageEnded OnAttackMontageEnded;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bAttackMontageEnded = false;
+	
+	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 
 protected:
+	// Selected target to look at / attack.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	AActor* SelectedTarget = nullptr;
+	
 	// Currently selected goal that State Tree uses to determine the state and tasks to execute.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	EGoalCommon SelectedGoal = EGoalCommon::Idle;

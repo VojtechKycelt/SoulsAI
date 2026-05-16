@@ -21,6 +21,8 @@ AEnemyCharacter::AEnemyCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	
 	CurrentHP = MaxHP;
+	
+	OnAttackMontageEnded.BindUObject(this, &AEnemyCharacter::AttackMontageEnded);
 }
 
 // Called when the game starts or when spawned
@@ -69,6 +71,35 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		true     // draw shadow
 	);
 	}
+	
+	switch (SelectedGoal)
+	{
+	case EGoalCommon::Attack:
+	case EGoalCommon::Strafe:
+		{
+			if (! SelectedTarget)
+			{
+				break;
+			}
+			// Character faces enemy
+			FVector ToEnemy = SelectedTarget->GetActorLocation() - GetActorLocation();
+			ToEnemy.Z = 0.f;
+			ToEnemy.Normalize();
+			SetActorRotation(
+				FMath::RInterpTo(
+					GetActorRotation(), 
+					ToEnemy.Rotation(),
+					DeltaTime, 
+					GetCharacterMovement()->RotationRate.Yaw / 100.f));
+			break;
+		}
+	default:
+		{
+			break;
+		}
+	}
+	
+	
 }
 
 void AEnemyCharacter::SelectGoal()
@@ -107,4 +138,19 @@ void AEnemyCharacter::SelectGoal()
 		}
 	}
 	SelectedGoal = EGoalCommon::Idle;
+}
+
+void AEnemyCharacter::Attack()
+{
+	UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
+	AnimInstance->Montage_Play(DashSlashAnimMontage);
+	bAttackMontageEnded = false;
+	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, DashSlashAnimMontage);
+	
+}
+
+void AEnemyCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UE_LOG(LogSoulsAI, Warning, TEXT("AttackMontageEnded"));
+	bAttackMontageEnded = true;
 }
