@@ -24,4 +24,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character State")
 	bool bIsAnimating = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character State")
+	bool bIsRecovering = false;
 };

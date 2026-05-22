@@ -44,6 +44,10 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	FollowCamera->bUsePawnControlRotation = false;
 	
 	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
+	OnGetHitMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::GetHitMontageEnded);
+	
+	//Stats
+	CurrentHP = MaxHP;
 }
 
 // Called to bind functionality to input
@@ -114,15 +118,18 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		}
 		
 		// Character faces enemy
-		FVector ToEnemy = LockedTarget->GetActorLocation() - GetActorLocation();
-		ToEnemy.Z = 0.f;
-		ToEnemy.Normalize();
-		SetActorRotation(
-			FMath::RInterpTo(
-				GetActorRotation(), 
-				ToEnemy.Rotation(),
-				DeltaTime, 
-				GetCharacterMovement()->RotationRate.Yaw / 100.f));
+		if (! AnimInstance->bIsRecovering)
+		{
+			FVector ToEnemy = LockedTarget->GetActorLocation() - GetActorLocation();
+			ToEnemy.Z = 0.f;
+			ToEnemy.Normalize();
+			SetActorRotation(
+				FMath::RInterpTo(
+					GetActorRotation(), 
+					ToEnemy.Rotation(),
+					DeltaTime, 
+					GetCharacterMovement()->RotationRate.Yaw / 100.f));
+		}
 		
 		// Camera looks at enemy
 		const FRotator FollowCamTargetRotation = FRotator((LockedTarget->GetActorLocation() - FollowCamera->GetComponentLocation()).Rotation());
@@ -137,13 +144,20 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 	default:
 		break;
 	}
+	
+	if (GetCharacterMovement()->Velocity.IsNearlyZero())
+	{
+		MovementRight = 0.0f;
+		MovementForward = 0.0f;
+	}
+
 
 }
 
 bool ASoulsPlayerCharacter::CanPerformAction()
 {
 	if (!AnimInstance) return false;
-	if (AnimInstance->bIsRolling || AnimInstance->bIsAnimating || GetCharacterMovement()->IsFalling()) return false;
+	if (AnimInstance->bIsRolling || GetCharacterMovement()->IsFalling() || AnimInstance->bIsRecovering) return false;
 	return true;
 }
 
@@ -232,7 +246,6 @@ void ASoulsPlayerCharacter::TryLockOn()
     }
 }
 
-
 void ASoulsPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -241,6 +254,7 @@ void ASoulsPlayerCharacter::Move(const FInputActionValue& Value)
 	// route the input
 	DoMove(MovementVector.X, MovementVector.Y);
 }
+
 void ASoulsPlayerCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -249,82 +263,65 @@ void ASoulsPlayerCharacter::Look(const FInputActionValue& Value)
 	// route the input
 	DoLook(LookAxisVector.X, -LookAxisVector.Y);
 }
+
 void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 {
-	if (CanPerformAction())
+	if (! CanPerformAction() || AnimInstance->IsAnyMontagePlaying())
 	{
-		if (GetCharacterMovement()->Velocity.IsNearlyZero()) {
-			AnimInstance->Montage_Play(DodgeAnimMontage);
-		}
-		else {
-			if (CameraState == ECameraState::Locked)
+		return;
+	}
+	// if (GetCharacterMovement()->Velocity.IsNearlyZero()) {
+	if ((MovementRight == 0.f) && (MovementForward == 0.f)) {
+		AnimInstance->Montage_Play(DodgeAnimMontage);
+	}
+	else {
+		if (CameraState == ECameraState::Locked)
+		{
+			if (FMath::Abs(MovementRight) > FMath::Abs(MovementForward))
 			{
-				// get normalized velocity direction
-				FVector Velocity = GetCharacterMovement()->Velocity;
-				Velocity.Z = 0.f;
-				Velocity.Normalize();
-				
-				// dot product tells us how much we're moving in each local direction
-				// ForwardDot: 1.0 = moving forward, -1.0 = moving backward
-				// RightDot:   1.0 = moving right,  -1.0 = moving left
-				float ForwardDot = FVector::DotProduct(GetActorForwardVector(), Velocity);
-				float RightDot = FVector::DotProduct(GetActorRightVector(), Velocity);
-				
-				if (FMath::Abs(RightDot) > FMath::Abs(ForwardDot))
+				// predominantly moving sideways
+				if (MovementRight > 0.f)
 				{
-					// predominantly moving sideways
-					if (RightDot > 0.f)
-					{
-						AnimInstance->Montage_Play(RollRightAnimMontage);
-					}
-					else
-					{
-						AnimInstance->Montage_Play(RollLeftAnimMontage);
-					}
+					AnimInstance->Montage_Play(RollRightAnimMontage);
 				}
 				else
 				{
-					// predominantly moving forward/backward
-					if (ForwardDot >= 0.f)
-					{
-						AnimInstance->Montage_Play(RollForwardAnimMontage);
-					}
-					else
-					{
-						//TODO RollBackwardAnimMontage instead
-						AnimInstance->Montage_Play(DodgeAnimMontage);
-					}
+					AnimInstance->Montage_Play(RollLeftAnimMontage);
 				}
-			} else
-			{
-				AnimInstance->Montage_Play(RollForwardAnimMontage);
 			}
+			else
+			{
+				// predominantly moving forward/backward
+				if (MovementForward >= 0.f)
+				{
+					AnimInstance->Montage_Play(RollForwardAnimMontage);
+				}
+				else
+				{
+					//TODO RollBackwardAnimMontage instead
+					AnimInstance->Montage_Play(RollBackwardAnimMontage);
+				}
+			}
+		} else
+		{
+			AnimInstance->Montage_Play(RollForwardAnimMontage);
 		}
 	}
+	
 }
 
 void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
-	if (!AnimInstance) return;
-	if (AnimInstance->bIsRolling || GetCharacterMovement()->IsFalling()) return;
-	
+	if (! CanPerformAction()) return;
 	if (! AnimInstance->IsAnyMontagePlaying()) 
 	{
 		AnimInstance->Montage_Play(LightAttackAnimMontage);
 		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
 	} else if (bComboInputWindowOpen)
-		{
+	{
 		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] bComboInputWindowOpen - should continue combo"));
-
-		
 		bShouldContinueCombo = true;
 	}
-	
-	// if (CanPerformAction())
-	// {
-	// 	AnimInstance->Montage_Play(LightAttackAnimMontage);
-	// 	//PlayAnimMontage(LightAttackAnimMontage);
-	// }
 }
 
 void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
@@ -338,7 +335,10 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] AttackMontageEnded"));
+	if (bInterrupted)
+	{
+		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] AttackMontageEnded by interrupting"));
+	}
 	CurrentComboIndex = 0;
 	bShouldContinueCombo = false;
 	bComboInputWindowOpen = false;
@@ -361,6 +361,8 @@ void ASoulsPlayerCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
+		MovementRight = Right;
+		MovementForward = Forward;
 		if (CameraState == ECameraState::Locked) {
 			// Use camera forward projected onto horizontal plane
 			FVector CameraForward = FollowCamera->GetForwardVector();
@@ -425,6 +427,48 @@ void ASoulsPlayerCharacter::CheckCombo()
 			CurrentComboIndex = 2;
 		}
 	}
+}
+
+void ASoulsPlayerCharacter::GetHit(const float Damage)
+{
+	if (!AnimInstance || AnimInstance->bIsRolling || AnimInstance->bIsRecovering) return;
+	
+	CurrentHP -= Damage;
+	
+	UE_LOG(LogSoulsAI, Warning, TEXT("CurrHP: %f"), CurrentHP);
+	
+	if (CurrentHP <= 0.0f)
+	{
+		HandleDeath();
+		return;
+	}
+	
+	AnimInstance->Montage_Play(GetHitAnimMontage);
+	AnimInstance->Montage_SetEndDelegate(OnGetHitMontageEnded, GetHitAnimMontage);
+
+	// Disable movement while we are recovering
+	GetCharacterMovement()->DisableMovement();
+	AnimInstance->bIsRecovering = true;
+}
+
+void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	AnimInstance->bIsRecovering = false;
+}
+
+void ASoulsPlayerCharacter::HandleDeath()
+{
+	UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter]: Death!"));
+	AnimInstance->Montage_Play(DeathAnimMontage);
+
+	// Disable movement while we are dead
+	GetCharacterMovement()->DisableMovement();
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	
+	// Enable full ragdoll physics
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetPhysicsBlendWeight(1.f);
 }
 
 

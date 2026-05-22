@@ -110,7 +110,26 @@ void AEnemyCharacter::SelectGoal()
 		UE_LOG(LogSoulsAI, Error, TEXT("[AEnemyCharacter] Player is null"));
 		return;
 	}
+	
 	const float Distance = FVector::Dist(GetActorLocation(), Player->GetActorLocation());
+	const bool PlayerInAttackRange = (Distance <= AttackRadius * 2);
+	
+	if (SelectedGoal == EGoalCommon::Attack)
+	{
+		//UpdateProbabilitiesWheel()
+		
+		//Spin the wheel
+		const int32 CurrentMontageSectionCount = CurrentMontage ? CurrentMontage->GetNumSections() : 0;
+		const int32 Random = FMath::RandRange(1, 10); // inclusive on both ends
+		if (PlayerInAttackRange && (Random <= 8) && CurrentComboIndex < (CurrentMontageSectionCount - 1))
+		{
+			++CurrentComboIndex;
+			AnimInstance->Montage_JumpToSection(ComboSectionNames[CurrentComboIndex], CurrentMontage);
+			return;
+		}
+		
+		// UE_LOG(LogSoulsAI, Warning, TEXT("[AEnemyCharacter] Random number: %i"), Random);
+	}
 	
 	while (! Subgoals.IsEmpty())
 	{
@@ -122,11 +141,12 @@ void AEnemyCharacter::SelectGoal()
 			case EGoalCommon::Combo_Final:
 				{
 					Subgoals.RemoveAt(0);
-					if (Distance <= AttackRadius)
+					// If the player distance is bigger than AttackRadius * 2, do not attack since he is too far.
+					if (PlayerInAttackRange)
 					{
 						SelectedGoal = NewGoal;
 						return;
-					} 
+					}
 					break;
 				}
 			default:
@@ -142,15 +162,17 @@ void AEnemyCharacter::SelectGoal()
 
 void AEnemyCharacter::Attack()
 {
-	UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
-	AnimInstance->Montage_Play(DashSlashAnimMontage);
+	// UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
+	CurrentMontage = DashSlashAnimMontage;
+	AnimInstance->Montage_Play(CurrentMontage);
+	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, CurrentMontage);
 	bAttackMontageEnded = false;
-	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, DashSlashAnimMontage);
-	
 }
 
 void AEnemyCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	UE_LOG(LogSoulsAI, Warning, TEXT("AttackMontageEnded"));
+	// UE_LOG(LogSoulsAI, Warning, TEXT("AttackMontageEnded"));
 	bAttackMontageEnded = true;
+	CurrentComboIndex = 0;
+	CurrentMontage = nullptr;
 }

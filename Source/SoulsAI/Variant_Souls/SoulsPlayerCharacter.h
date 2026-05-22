@@ -53,6 +53,13 @@ class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
 
 	UFUNCTION()
 	void FindLockOnTarget();
+	
+public:
+	UPROPERTY(EditAnywhere, Category = "Stats")
+	float CurrentHP = 100.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Stats")
+	float MaxHP = 100.f;
 
 protected:
 	/** Input Actions for binding to correct functions. */
@@ -72,28 +79,36 @@ protected:
 	UInputAction* HeavyAttackAction;
 
 	/** Animation Montages to easily and correctly assign animation to correct action. */
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
 	UAnimMontage* RollForwardAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
 	UAnimMontage* RollLeftAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
 	UAnimMontage* RollRightAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
+	UAnimMontage* RollBackwardAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
 	UAnimMontage* DodgeAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack")
 	UAnimMontage* LightAttackAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack")
 	UAnimMontage* HeavyAttackAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UAnimMontage* GetHitAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UAnimMontage* DeathAnimMontage;
 
 	/** Names of the AnimMontage sections that correspond to each stage of the combo attack */
 	UPROPERTY(EditAnywhere, Category="Melee Attack|Combo")
 	TArray<FName> ComboSectionNames;
 	
+	UPROPERTY()
 	USoulsPlayerCharacterAnimInstance* AnimInstance;
 	
 	/** Attack montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
-	
+	FOnMontageEnded OnGetHitMontageEnded;
+
 public:
 	/** Whether mid-combo attack input press plays another section of combo montage. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -137,9 +152,18 @@ protected:
 	void CameraTargetLock(const FInputActionValue& Value);
 	
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
+	
+	void GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
 	ECameraState CameraState = ECameraState::Default;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float MovementRight = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float MovementForward = 0.0f;
+
 public:
 	// Sets default values for this character's properties
 	ASoulsPlayerCharacter();
@@ -162,7 +186,13 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void CheckCombo();
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void GetHit(const float Damage);
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void HandleDeath();
+	
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 

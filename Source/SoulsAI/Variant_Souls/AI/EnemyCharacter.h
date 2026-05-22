@@ -67,8 +67,8 @@ public:
 	/** ATTACK STATS */
 	
 	// Base amount of Attack Damage.
-	UPROPERTY(EditAnywhere, Category = "Stats | Attack", meta = (ClampMin = 0))
-	float BaseAD = 30.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats | Attack", meta = (ClampMin = 0))
+	float BaseAD = 10.0f;
 	
 	/** AI PROPERTIES */
 
@@ -106,6 +106,9 @@ public:
 	
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
+private:
+	UPROPERTY()
+	UAnimMontage* CurrentMontage = nullptr;
 
 protected:
 	// Selected target to look at / attack.
@@ -120,4 +123,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	TArray<EGoalCommon> Subgoals = TArray<EGoalCommon>();
 	
+	UPROPERTY(EditAnywhere, Category="Attack|Combo")
+	TArray<FName> ComboSectionNames;
+	
+	/** Current index of combo animation montage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	int32 CurrentComboIndex = 0;
 };
