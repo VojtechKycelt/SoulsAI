@@ -4,7 +4,7 @@
 
 #include "Containers/Queue.h"
 #include "CoreMinimal.h"
-#include "Enums/GoalCommon.h"
+#include "Enums/Enums.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "EnemyCharacter.generated.h"
@@ -34,6 +34,9 @@ public:
 	/** Attack */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void Attack();
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void AttackCombo();
 	
 	/** HEALTH STATS */
 	
@@ -83,19 +86,48 @@ public:
 	// Radius in which player is attacked.
 	UPROPERTY(EditAnywhere, Category = "AI")
 	float AttackRadius = 300.0f;
+	
+	// Radius in which player is attacked.
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float LongAttackRadius = 1200.0f;
 
 	/** Animation Montages to easily and correctly assign animation to correct action. */
-	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* DashSlashAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* StabAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* JumpSlamAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* UpperCutAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation")
-	UAnimMontage* StaggerAnimMontage;
-
+	/** Long Attack Anim Montages */
+	
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UAnimMontage* AM_DashSlash; // Long Sweep
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UAnimMontage* AM_ChargeTwoHandStab;
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UAnimMontage* AM_LeapStab;
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UAnimMontage* AM_RollSlam;
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UAnimMontage* AM_JumpSlam;
+	
+	/** Close Attack Anim Montages */
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Close")
+	UAnimMontage* AM_UpperCut;
+	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Close")
+	UAnimMontage* AM_DualSwordSwing;
+	
+	/** Dodge Anim Montages */
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
+	UAnimMontage* RollForwardAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
+	UAnimMontage* RollLeftAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
+	UAnimMontage* RollRightAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
+	UAnimMontage* RollBackwardAnimMontage;
+	
+	/** Interaction on getting hit Montages*/
+	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UAnimMontage* AM_GetHit;
+	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UAnimMontage* AM_Death;
+	
+	UPROPERTY()
 	UEnemyAnimInstance* AnimInstance;
 	
 	/** Attack montage ended delegate */
@@ -103,6 +135,10 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bAttackMontageEnded = false;
+	
+	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bShouldEndTask = false;
 	
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
@@ -117,12 +153,31 @@ protected:
 	
 	// Currently selected goal that State Tree uses to determine the state and tasks to execute.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-	EGoalCommon SelectedGoal = EGoalCommon::Idle;
+	EGoal SelectedGoal = EGoal::Idle;
 	
 	// Queue of subgoals which are waiting to be executed after SelectedGoal is done.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-	TArray<EGoalCommon> Subgoals = TArray<EGoalCommon>();
+	TArray<EGoal> Subgoals = TArray<EGoal>();
 	
+	// Array of all goals this character can select. Should be set in blueprint editor.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	TArray<EGoal> RelevantGoals = TArray<EGoal>(); //maybe drop the constructor? or unify all of them
+	
+	// Map of probabilities of each goal
+	UPROPERTY()
+	TMap<EAction, uint32> CombatWheel;
+	
+	// Update probabilities for each relevant goal.
+	void UpdateCombatWheel();
+	
+	// Returns random goal based on probabilities of CombatWheel.
+	void SpinCombatWheel();
+	
+	void PerformAction(const EAction Action);
+	
+	// Section names for Montages with more sections to be able to jump to another section without changing montage.
+	// Could be a 2D Array/Map that maps section names for each montage.
+	// For now sections names are named only Attack1, Attack2,...
 	UPROPERTY(EditAnywhere, Category="Attack|Combo")
 	TArray<FName> ComboSectionNames;
 	
