@@ -40,13 +40,6 @@ void AEnemyCharacter::BeginPlay()
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// GEngine->AddOnScreenDebugMessage(
-	// -1,
-	// 1.f,
-	// FColor::Green,
-	// UEnum::GetDisplayValueAsText(SelectedGoal).ToString()
-	// );
 	
 	// Update UI
 	DrawDebugString(
@@ -72,109 +65,45 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	);
 	}
 	
-	switch (SelectedGoal)
+	if (! SelectedTarget)
 	{
-	case EGoal::Attack:
-	case EGoal::Attack_Repeat:
-	case EGoal::Attack_Final:
-		//	add boolean should rotate to target and rotate only if its true
-		// could be handy just to rotate half of attack montage or something
-	case EGoal::Strafe:
-		{
-			if (! SelectedTarget)
-			{
-				break;
-			}
-			// Character faces enemy
-			FVector ToEnemy = SelectedTarget->GetActorLocation() - GetActorLocation();
-			ToEnemy.Z = 0.f;
-			ToEnemy.Normalize();
-			SetActorRotation(
-				FMath::RInterpTo(
-					GetActorRotation(), 
-					ToEnemy.Rotation(),
-					DeltaTime, 
-					GetCharacterMovement()->RotationRate.Yaw / 100.f));
-			break;
-		}
-	default:
-		{
-			break;
-		}
+		bIsRotatedToTarget = false;
+	} else
+	{
+		// Calculate direction to target
+		FVector DirectionToTarget = SelectedTarget->GetActorLocation() - GetActorLocation();
+		DirectionToTarget.Z = 0.0f;  // Ignore height difference - makes it 2D
+		DirectionToTarget.Normalize();
+
+		const float TargetYaw = DirectionToTarget.Rotation().Yaw;
+		const float CurrentYaw = GetActorRotation().Yaw;
+		constexpr float RotationThreshold = 30.0f; //degrees
+		bIsRotatedToTarget = (FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw))) < (RotationThreshold);
 	}
-	
 	
 }
 
 void AEnemyCharacter::SelectGoal()
 {
-	// TODO Check if SelectedTarget is valid and if we shouldn't change it 
-	// based on flags and distance and who attacked us
 	if (!SelectedTarget)
 	{
+		// In reusable version of enemy, we could have 'DefaultGoal' var that can be set from BP - like ReturnToHomeLocation
 		SelectedGoal = EGoal::Idle;
 		return;
 	}
-	// UE_LOG(LogSoulsAI, Warning, TEXT("SelectGoal()"));
 	
 	UpdateCombatWheel();
 	
-	//maybe return bool if task should finish?
 	SpinCombatWheel();
+	
 	UE_LOG(LogSoulsAI, Warning, TEXT("SelectGoal(): %s"),
 	*UEnum::GetValueAsString(SelectedGoal));
-
-	// const float DistanceToTarget = FVector::Dist(GetActorLocation(), SelectedTarget->GetActorLocation());
-	// const bool TargetInAttackRange = (DistanceToTarget <= AttackRadius * 2);
-	// if (SelectedGoal == EGoal::Attack)
-	// {
-	// 	//UpdateCombatWheel()
-	// 	
-	// 	//Spin the wheel
-	// 	const int32 CurrentMontageSectionCount = CurrentMontage ? CurrentMontage->GetNumSections() : 0;
-	// 	const int32 Random = FMath::RandRange(1, 10); // inclusive on both ends
-	// 	if (TargetInAttackRange && (Random <= 8) && CurrentComboIndex < (CurrentMontageSectionCount - 1))
-	// 	{
-	// 		++CurrentComboIndex;
-	// 		AnimInstance->Montage_JumpToSection(ComboSectionNames[CurrentComboIndex], CurrentMontage);
-	// 		return;
-	// 	}
-	// 	
-	// 	// UE_LOG(LogSoulsAI, Warning, TEXT("[AEnemyCharacter] Random number: %i"), Random);
-	// }
 	
-	// while (! Subgoals.IsEmpty())
-	// {
-	// 	switch (const EGoal NewGoal = Subgoals[0])
-	// 	{
-	// 		case EGoal::Attack:
-	// 		case EGoal::Attack_Repeat:
-	// 		case EGoal::Attack_Final:
-	// 			{
-	// 				Subgoals.RemoveAt(0);
-	// 				// If the player distance is bigger than AttackRadius * 2, do not attack since he is too far.
-	// 				if (TargetInAttackRange)
-	// 				{
-	// 					SelectedGoal = NewGoal;
-	// 					return;
-	// 				}
-	// 				break;
-	// 			}
-	// 		default:
-	// 			{
-	// 				SelectedGoal = NewGoal;
-	// 				Subgoals.RemoveAt(0);
-	// 				return;
-	// 			}
-	// 	}
-	// }
-	// SelectedGoal = EGoal::Idle;
 }
 
 void AEnemyCharacter::Attack()
 {
 	// UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
-	// SelectedGoal = EGoal::Attack;
 	AnimInstance->Montage_Play(CurrentMontage);
 	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, CurrentMontage);
 	bAttackMontageEnded = false;
@@ -217,27 +146,23 @@ void AEnemyCharacter::UpdateCombatWheel()
 			if ((DistanceToTarget < LongAttackRadius) && (DistanceToTarget > AttackRadius))
 			{
 				//Add probability of Long Attacks
-				CombatWheel.Add(EAction::DashSlash, 5);
-				CombatWheel.Add(EAction::ChargeTwoHandStab, 5);
-				CombatWheel.Add(EAction::LeapStab, 5);
-				CombatWheel.Add(EAction::RollSlam, 5);
-				CombatWheel.Add(EAction::JumpSlam, 5);
+				AddLongAttacks(1);
+				CombatWheel.Add(EAction::Chase, 2);
 			} else if (DistanceToTarget < (AttackRadius * 2))
 			{
-				CombatWheel.Add(EAction::UpperCut, 50);
-				CombatWheel.Add(EAction::DualSwordSwing, 50);
+				AddAttacks(1);
 			} else if (DistanceToTarget < ChaseRadius)
 			{
-				CombatWheel.Add(EAction::Chase, 25);
+				CombatWheel.Add(EAction::Chase, 1);
 			}
 			break;
 
 		case EGoal::Attack:
 				if (TargetInAttackRange && CurrentMontageSectionCount > 1)
 				{
-					CombatWheel.Add(EAction::DualSwordSwingRepeat, 75);
+					CombatWheel.Add(EAction::DualSwordSwingRepeat, 4);
 				}
-				CombatWheel.Add(EAction::Strafe, 25);
+				CombatWheel.Add(EAction::Strafe, 1);
 
 			break;
 		case EGoal::Attack_Repeat:
@@ -245,29 +170,48 @@ void AEnemyCharacter::UpdateCombatWheel()
 				{
 					if (CurrentComboIndex < (CurrentMontageSectionCount - 2))
 					{
-						CombatWheel.Add(EAction::DualSwordSwingRepeat, 75);
+						CombatWheel.Add(EAction::DualSwordSwingRepeat, 4);
 					} else
 					{
-						CombatWheel.Add(EAction::DualSwordSwingFinal, 75);
+						CombatWheel.Add(EAction::DualSwordSwingFinal, 4);
 					}
 				}
-				CombatWheel.Add(EAction::Strafe, 25);
+				CombatWheel.Add(EAction::Strafe, 1);
 			break;
 		case EGoal::Attack_Final:
-				CombatWheel.Add(EAction::Strafe, 50);
-				CombatWheel.Add(EAction::Chase, 50);
-				// CombatWheel.Add(EAction::Cooldown, 50);
-				// CombatWheel.Add(EAction::Roll, 50);
+				CombatWheel.Add(EAction::Strafe, 5);
+				CombatWheel.Add(EAction::Chase, 5);
+				// CombatWheel.Add(EAction::Cooldown, 5);
+				// CombatWheel.Add(EAction::Roll, 5);
+				if (TargetInAttackRange)
+				{
+					AddAttacks(1);
+				}
 			break;
 		case EGoal::Strafe:
 				if (DistanceToTarget <= ChaseRadius)
 				{
-					CombatWheel.Add(EAction::Chase, 100);
+					CombatWheel.Add(EAction::Chase, 1);
 				}
 			break;
 		default:
 			break;
 	}
+}
+
+void AEnemyCharacter::AddLongAttacks(const uint32 Probability /* = 1 */)
+{
+	CombatWheel.Add(EAction::DashSlash, Probability);
+	CombatWheel.Add(EAction::ChargeTwoHandStab, Probability);
+	CombatWheel.Add(EAction::LeapStab, Probability);
+	CombatWheel.Add(EAction::RollSlam, Probability);
+	CombatWheel.Add(EAction::JumpSlam, Probability);
+}
+
+void AEnemyCharacter::AddAttacks(const uint32 Probability /* = 1 */)
+{
+	CombatWheel.Add(EAction::UpperCut, Probability);
+	CombatWheel.Add(EAction::DualSwordSwing, Probability);
 }
 
 void AEnemyCharacter::SpinCombatWheel()
@@ -310,51 +254,52 @@ void AEnemyCharacter::PerformAction(const EAction Action)
 	{
 		// Long Attacks
 		case EAction::DashSlash:
-			// Attack(AM_DashSlash);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_DashSlash;
 			SelectedGoal = EGoal::Attack;
 			break;
 		case EAction::ChargeTwoHandStab:
-			// Attack(AM_ChargeTwoHandStab);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_ChargeTwoHandStab;
 			SelectedGoal = EGoal::Attack;
 			break;
 		case EAction::LeapStab:
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_LeapStab;
 			SelectedGoal = EGoal::Attack;
 			break;
 		case EAction::RollSlam:
-			// Attack(AM_RollSlam);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_RollSlam;
 			SelectedGoal = EGoal::Attack;
 			break;
 		case EAction::JumpSlam:
-			// Attack(AM_JumpSlam);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_JumpSlam;
 			SelectedGoal = EGoal::Attack;
 			break;
 
 		// Attacks
 		case EAction::UpperCut:
-			// Attack(AM_UpperCut);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_UpperCut;
 			SelectedGoal = EGoal::Attack;
 			break;
 		case EAction::DualSwordSwing:
-			// Attack(AM_DualSwordSwing);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_DualSwordSwing;
 			SelectedGoal = EGoal::Attack;
 			break;
 		
 		// Combos
 		case EAction::DualSwordSwingRepeat:
-			// AttackCombo(AM_DualSwordSwing);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_DualSwordSwing;
 			SelectedGoal = EGoal::Attack_Repeat;
 			AttackCombo();
 			break;
 		case EAction::DualSwordSwingFinal:
-			// AttackCombo(AM_DualSwordSwing);
+			bShouldRotateToTarget = true;
 			CurrentMontage = AM_DualSwordSwing;
 			SelectedGoal = EGoal::Attack_Final;
 			AttackCombo();
@@ -362,9 +307,11 @@ void AEnemyCharacter::PerformAction(const EAction Action)
 
 		// Movement
 		case EAction::Chase:
+			bShouldRotateToTarget = true;
 			SelectedGoal = EGoal::Chase;
 			break;
 		case EAction::Strafe:
+			bShouldRotateToTarget = true;
 			SelectedGoal = EGoal::Strafe;
 			break;
 
@@ -384,5 +331,34 @@ void AEnemyCharacter::PerformAction(const EAction Action)
 			break;
 	}
 	
-	//Maybe stop all currently running tasks here somehow?
 }
+
+// void CheckSubgoals()
+// {
+// 	while (! Subgoals.IsEmpty())
+// 	{
+// 		switch (const EGoal NewGoal = Subgoals[0])
+// 		{
+// 			case EGoal::Attack:
+// 			case EGoal::Attack_Repeat:
+// 			case EGoal::Attack_Final:
+// 				{
+// 					Subgoals.RemoveAt(0);
+// 					// If the player distance is bigger than AttackRadius * 2, do not attack since he is too far.
+// 					if (TargetInAttackRange)
+// 					{
+// 						SelectedGoal = NewGoal;
+// 						return;
+// 					}
+// 					break;
+// 				}
+// 			default:
+// 				{
+// 					SelectedGoal = NewGoal;
+// 					Subgoals.RemoveAt(0);
+// 					return;
+// 				}
+// 		}
+// 	}
+// 	SelectedGoal = EGoal::Idle;
+// }

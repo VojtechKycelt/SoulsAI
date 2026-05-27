@@ -27,7 +27,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	// Select new goal
+	/** Select new goal */
+	// Note: maybe instead of void we can return bool if task should know if finish or no.
 	UFUNCTION(BlueprintCallable)
 	virtual void SelectGoal();
 	
@@ -133,6 +134,8 @@ public:
 	/** Attack montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
 	
+	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bAttackMontageEnded = false;
 	
@@ -140,7 +143,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bShouldEndTask = false;
 	
-	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bShouldRotateToTarget = true;
+	
+	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	bool bIsRotatedToTarget = false;
+	
+	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	float RotationSpeed = 100.0f;
+	
 
 private:
 	UPROPERTY()
@@ -169,6 +183,14 @@ protected:
 	
 	// Update probabilities for each relevant goal.
 	void UpdateCombatWheel();
+	
+	// Add Long Attacks to combat wheel
+	// Note: we can declare array variables for each attack type: 'LongAttack', 'CloseAttacks'
+	// and then pass it to one unified function 'AddAttacks(AttackTypePointer,Probability)'
+	void AddLongAttacks(const uint32 Probability = 1);
+	
+	// Add Default Attacks to combat wheel
+	void AddAttacks(const uint32 Probability = 1);
 	
 	// Returns random goal based on probabilities of CombatWheel.
 	void SpinCombatWheel();
