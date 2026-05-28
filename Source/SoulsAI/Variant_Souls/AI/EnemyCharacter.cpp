@@ -152,6 +152,8 @@ void AEnemyCharacter::UpdateCombatWheel()
 	const bool TargetInAttackRange = (DistanceToTarget <= AttackRadius * 2);
 	const int32 CurrentMontageSectionCount = CurrentMontage ? CurrentMontage->GetNumSections() : 0;
 
+	//Note: if it wasn't for the probabilities update this could be directly in state tree
+	// just transitions and select randomly
 	switch (SelectedGoal) // selection based on previous goal (currently SelectedGoal)
 	{
 		case EGoal::Idle:
@@ -162,7 +164,7 @@ void AEnemyCharacter::UpdateCombatWheel()
 				//Add probability of Long Attacks
 				AddLongAttacks(1);
 				CombatWheel.Add(EAction::Chase, 2);
-			} else if (DistanceToTarget < (AttackRadius * 2))
+			} else if (TargetInAttackRange)
 			{
 				AddAttacks(1);
 			} else if (DistanceToTarget < ChaseRadius)
