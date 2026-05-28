@@ -42,9 +42,22 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	// Update UI
+	if (SelectedTarget)
+	{
+		DrawDebugString(
+			GetWorld(),
+			GetActorLocation() + FVector(0.f, 0, 100.f), // above head
+			FString::Printf(TEXT("Distance: %.1f"),
+				FVector::Dist(GetActorLocation(), SelectedTarget->GetActorLocation())),
+			nullptr,
+			FColor::Cyan,
+			0.f,     // duration (0 = one frame, so call every tick)
+			true     // draw shadow
+		);
+	}
 	DrawDebugString(
 		GetWorld(),
-		GetActorLocation() + FVector(0, 0, 100.f), // above head
+		GetActorLocation() + FVector(0, 0, 200.f), // above head
 		UEnum::GetDisplayValueAsText(SelectedGoal).ToString(),
 		nullptr,
 		FColor::Green,
@@ -56,7 +69,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	{
 		DrawDebugString(
 		GetWorld(),
-		GetActorLocation() + FVector(0, 0, 150.f + (i * 100.f)), // above head
+		GetActorLocation() + FVector(0, 0, 250.f + (i * 100.f)), // above head
 		UEnum::GetDisplayValueAsText(Subgoals[i]).ToString(),
 		nullptr,
 		FColor::White,
@@ -104,7 +117,7 @@ void AEnemyCharacter::SelectGoal()
 void AEnemyCharacter::Attack()
 {
 	// UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
-	AnimInstance->Montage_Play(CurrentMontage);
+	AnimInstance->Montage_Play(CurrentMontage); //can specify InPlayRate float to slower AM for easier difficulty
 	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, CurrentMontage);
 	bAttackMontageEnded = false;
 }
@@ -143,6 +156,7 @@ void AEnemyCharacter::UpdateCombatWheel()
 	{
 		case EGoal::Idle:
 		case EGoal::Chase:
+		case EGoal::Strafe:
 			if ((DistanceToTarget < LongAttackRadius) && (DistanceToTarget > AttackRadius))
 			{
 				//Add probability of Long Attacks
@@ -179,21 +193,22 @@ void AEnemyCharacter::UpdateCombatWheel()
 				CombatWheel.Add(EAction::Strafe, 1);
 			break;
 		case EGoal::Attack_Final:
-				CombatWheel.Add(EAction::Strafe, 5);
-				CombatWheel.Add(EAction::Chase, 5);
 				// CombatWheel.Add(EAction::Cooldown, 5);
 				// CombatWheel.Add(EAction::Roll, 5);
+				CombatWheel.Add(EAction::Strafe, 2);
 				if (TargetInAttackRange)
 				{
 					AddAttacks(1);
-				}
-			break;
-		case EGoal::Strafe:
-				if (DistanceToTarget <= ChaseRadius)
+				} else
 				{
-					CombatWheel.Add(EAction::Chase, 1);
+					CombatWheel.Add(EAction::Chase, 2);
+					if (DistanceToTarget < LongAttackRadius)
+					{
+						AddLongAttacks(1);
+					}
 				}
 			break;
+				
 		default:
 			break;
 	}
