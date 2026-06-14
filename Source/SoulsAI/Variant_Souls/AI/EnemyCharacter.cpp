@@ -233,14 +233,18 @@ void AEnemyCharacter::AddAttacks(const uint32 Probability /* = 1 */)
 
 void AEnemyCharacter::SpinCombatWheel()
 {
-	uint32 ProbabilitiesTotal = 0;
+	//this could be Blueprint function
+	
 	UE_LOG(LogSoulsAI, Warning, TEXT("SpinCombatWheel(): "));
+	
+	uint32 ProbabilitiesTotal = 0;
 	for (const auto& Pair : CombatWheel)
 	{
 		ProbabilitiesTotal += Pair.Value;
-		UE_LOG(LogSoulsAI, Warning, TEXT("Action: %s, Probability: %u"), *UEnum::GetValueAsString(Pair.Key), Pair.Value);
+		UE_LOG(LogSoulsAI, Warning, TEXT("- Action: %s, Probability: %u"), *UEnum::GetValueAsString(Pair.Key), Pair.Value);
 	}
-	UE_LOG(LogSoulsAI, Warning, TEXT("ProbabilitiesTotal: %u"), ProbabilitiesTotal);
+	
+	UE_LOG(LogSoulsAI, Warning, TEXT("ProbabilitiesTotal = %u"), ProbabilitiesTotal);
 
 	if (ProbabilitiesTotal == 0)
 	{
@@ -267,6 +271,7 @@ void AEnemyCharacter::SpinCombatWheel()
 
 void AEnemyCharacter::PerformAction(const EAction Action)
 {
+	//this could be transitions in state tree I guess?
 	switch (Action)
 	{
 		// Long Attacks
