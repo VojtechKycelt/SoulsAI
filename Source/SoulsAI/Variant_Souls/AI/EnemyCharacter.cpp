@@ -114,6 +114,63 @@ void AEnemyCharacter::SelectGoal()
 	
 }
 
+void AEnemyCharacter::ClearCombatWheel()
+{
+	CombatWheel.Reset();
+}
+
+void AEnemyCharacter::AddActionToCombatWheel(const EAction Action, const int32 Probability /* = 1 */ )
+{
+	CombatWheel.Add(Action, Probability);
+}
+
+void AEnemyCharacter::AddActionArrayToCombatWheel(const TArray<FWeightedAction>& Actions)
+{
+	for (const FWeightedAction& Entry : Actions)
+	{
+		CombatWheel.Add(Entry.Action, Entry.Probability);
+	}
+}
+
+EAction AEnemyCharacter::SelectActionFromCombatWheel()
+{
+	UE_LOG(LogSoulsAI, Warning, TEXT("SelectActionFromCombatWheel(): "));
+	
+	// Count total probabilities
+	uint32 ProbabilitiesTotal = 0;
+	for (const auto& Pair : CombatWheel)
+	{
+		ProbabilitiesTotal += Pair.Value;
+		UE_LOG(LogSoulsAI, Warning, TEXT("- Action: %s, Probability: %u"), *UEnum::GetValueAsString(Pair.Key), Pair.Value);
+	}
+	UE_LOG(LogSoulsAI, Warning, TEXT("ProbabilitiesTotal = %u"), ProbabilitiesTotal);
+
+	
+	// Stop if there is no action in combat wheel
+	if (ProbabilitiesTotal == 0)
+	{
+		// SelectedGoal = EGoal::Idle;
+		return EAction::None;
+	}
+	
+	
+	// Generate random number and choose action
+	const int32 Fate = FMath::RandRange(1, ProbabilitiesTotal);
+	int32 TempFate = 0;
+	for (const auto& Pair : CombatWheel)
+	{
+		TempFate += Pair.Value;
+		if (TempFate >= Fate)
+		{
+			UE_LOG(LogSoulsAI, Warning, TEXT("SelectedAction: %s"), *UEnum::GetValueAsString(Pair.Key));
+			return Pair.Key;
+		}
+	}
+	UE_LOG(LogSoulsAI, Error, TEXT("No action selected"));
+
+	return EAction::None;
+}
+
 void AEnemyCharacter::Attack()
 {
 	// UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));

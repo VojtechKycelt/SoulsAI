@@ -12,6 +12,20 @@
 class UWidgetComponent;
 class UEnemyAnimInstance;
 
+USTRUCT(BlueprintType)
+struct FWeightedAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAction Action = EAction::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
+	int32 Probability = 1;
+	
+	//TODO add montage variable and max range variables -> utility AI -> if player is further, probability is less
+};
+
 UCLASS()
 class SOULSAI_API AEnemyCharacter : public ACharacter
 {
@@ -32,6 +46,22 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void SelectGoal();
 	
+	/** Clears combat goal */
+	UFUNCTION(BlueprintCallable)
+	virtual void ClearCombatWheel();
+	
+	/** Adds an action with a selection weight to the combat wheel */
+	UFUNCTION(BlueprintCallable)
+	virtual void AddActionToCombatWheel(const EAction Action, const int32 Probability = 1);
+	
+	/** Adds array of actions with a selection weight to the combat wheel */
+	UFUNCTION(BlueprintCallable)
+	void AddActionArrayToCombatWheel(const TArray<FWeightedAction>& Actions);
+	
+	// Returns random action based on probabilities of CombatWheel.
+	UFUNCTION(BlueprintCallable)
+	EAction SelectActionFromCombatWheel();
+	
 	/** Attack */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void Attack();
@@ -42,90 +72,90 @@ public:
 	/** HEALTH STATS */
 	
 	// Max amount of health points.
-	UPROPERTY(EditAnywhere, Category = "Stats | Health", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Health", meta = (ClampMin = 0))
 	float MaxHP = 100.0f;
 	
 	// Current amount of health points.
-	UPROPERTY(EditAnywhere, Category = "Stats | Health", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Health", meta = (ClampMin = 0))
 	float CurrentHP = 0.0f;
 	
 	/** DEFENSE STATS */
 	// Used for receiving damage calculations in combat.
 	
 	// Base amount of Armor.
-	UPROPERTY(EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
 	float BaseArmor = 10.0f;
 
 	// Base amount of Fire resistance.
-	UPROPERTY(EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
 	float BaseFireResistance = 20.0f;
 	
 	// Base amount of Lightning resistance.
-	UPROPERTY(EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
 	float BaseLightningResistance = 0.0f;
 	
 	// Base amount of Magic resistance.
-	UPROPERTY(EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Defense", meta = (ClampMin = 0))
 	float BaseMagicResistance = 10.0f;
 	
 	/** ATTACK STATS */
 	
 	// Base amount of Attack Damage.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats | Attack", meta = (ClampMin = 0))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Attack", meta = (ClampMin = 0))
 	float BaseAD = 10.0f;
 	
 	/** AI PROPERTIES */
 
 	// Radius in which player is chased.
-	UPROPERTY(EditAnywhere, Category = "AI")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float ChaseRadius = 1000.0f;
 	
 	// Radius in which sight of chased player is lost and should stop chasing.
-	UPROPERTY(EditAnywhere, Category = "AI")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float ChaseSightRadius = 1500.0f;
 
 	// Radius in which player is attacked.
-	UPROPERTY(EditAnywhere, Category = "AI")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float AttackRadius = 300.0f;
 	
 	// Radius in which player is attacked.
-	UPROPERTY(EditAnywhere, Category = "AI")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float LongAttackRadius = 1200.0f;
 
 	/** Animation Montages to easily and correctly assign animation to correct action. */
 	/** Long Attack Anim Montages */
 	
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
 	UAnimMontage* AM_DashSlash; // Long Sweep
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
 	UAnimMontage* AM_ChargeTwoHandStab;
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
 	UAnimMontage* AM_LeapStab;
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
 	UAnimMontage* AM_RollSlam;
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Long")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
 	UAnimMontage* AM_JumpSlam;
 	
 	/** Close Attack Anim Montages */
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Close")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Close")
 	UAnimMontage* AM_UpperCut;
-	UPROPERTY(EditAnywhere, Category = "Animation | Attack | Close")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Close")
 	UAnimMontage* AM_DualSwordSwing;
 	
 	/** Dodge Anim Montages */
-	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
-	UAnimMontage* RollForwardAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
-	UAnimMontage* RollLeftAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
-	UAnimMontage* RollRightAnimMontage;
-	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
-	UAnimMontage* RollBackwardAnimMontage;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
+	UAnimMontage* AM_RollForward;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
+	UAnimMontage* AM_RollLeft;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
+	UAnimMontage* AM_RollRight;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
+	UAnimMontage* AM_RollBackward;
 	
 	/** Interaction on getting hit Montages*/
-	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
 	UAnimMontage* AM_GetHit;
-	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
 	UAnimMontage* AM_Death;
 	
 	UPROPERTY()
@@ -155,9 +185,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	float RotationSpeed = 100.0f;
 	
-
-private:
-	UPROPERTY()
+	/** Current montage that is being played. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	UAnimMontage* CurrentMontage = nullptr;
 
 protected:
