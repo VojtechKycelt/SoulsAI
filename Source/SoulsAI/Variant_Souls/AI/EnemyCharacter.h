@@ -41,11 +41,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	/** Select new goal */
-	// Note: maybe instead of void we can return bool if task should know if finish or no.
-	UFUNCTION(BlueprintCallable)
-	virtual void SelectGoal();
-	
 	/** Clears combat goal */
 	UFUNCTION(BlueprintCallable)
 	virtual void ClearCombatWheel();
@@ -212,19 +207,6 @@ protected:
 	
 	// Update probabilities for each relevant goal.
 	void UpdateCombatWheel();
-	
-	// Add Long Attacks to combat wheel
-	// Note: we can declare array variables for each attack type: 'LongAttack', 'CloseAttacks'
-	// and then pass it to one unified function 'AddAttacks(AttackTypePointer,Probability)'
-	void AddLongAttacks(const uint32 Probability = 1);
-	
-	// Add Default Attacks to combat wheel
-	void AddAttacks(const uint32 Probability = 1);
-	
-	// Returns random goal based on probabilities of CombatWheel.
-	void SpinCombatWheel();
-	
-	void PerformAction(const EAction Action);
 	
 	// Section names for Montages with more sections to be able to jump to another section without changing montage.
 	// Could be a 2D Array/Map that maps section names for each montage.

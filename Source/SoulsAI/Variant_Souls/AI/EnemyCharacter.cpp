@@ -96,24 +96,6 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	
 }
 
-void AEnemyCharacter::SelectGoal()
-{
-	if (!SelectedTarget)
-	{
-		// In reusable version of enemy, we could have 'DefaultGoal' var that can be set from BP - like ReturnToHomeLocation
-		SelectedGoal = EGoal::Idle;
-		return;
-	}
-	
-	UpdateCombatWheel();
-	
-	SpinCombatWheel();
-	
-	UE_LOG(LogSoulsAI, Warning, TEXT("SelectGoal(): %s"),
-	*UEnum::GetValueAsString(SelectedGoal));
-	
-}
-
 void AEnemyCharacter::ClearCombatWheel()
 {
 	CombatWheel.Reset();
@@ -219,11 +201,11 @@ void AEnemyCharacter::UpdateCombatWheel()
 			if ((DistanceToTarget < LongAttackRadius) && (DistanceToTarget > AttackRadius))
 			{
 				//Add probability of Long Attacks
-				AddLongAttacks(1);
+				// AddLongAttacks(1);
 				CombatWheel.Add(EAction::Chase, 2);
 			} else if (TargetInAttackRange)
 			{
-				AddAttacks(1);
+				// AddAttacks(1);
 			} else if (DistanceToTarget < ChaseRadius)
 			{
 				CombatWheel.Add(EAction::Chase, 1);
@@ -257,13 +239,13 @@ void AEnemyCharacter::UpdateCombatWheel()
 				CombatWheel.Add(EAction::Strafe, 2);
 				if (TargetInAttackRange)
 				{
-					AddAttacks(1);
+					// AddAttacks(1);
 				} else
 				{
 					CombatWheel.Add(EAction::Chase, 2);
 					if (DistanceToTarget < LongAttackRadius)
 					{
-						AddLongAttacks(1);
+						// AddLongAttacks(1);
 					}
 				}
 			break;
@@ -272,172 +254,3 @@ void AEnemyCharacter::UpdateCombatWheel()
 			break;
 	}
 }
-
-void AEnemyCharacter::AddLongAttacks(const uint32 Probability /* = 1 */)
-{
-	CombatWheel.Add(EAction::DashSlash, Probability);
-	CombatWheel.Add(EAction::ChargeTwoHandStab, Probability);
-	CombatWheel.Add(EAction::LeapStab, Probability);
-	CombatWheel.Add(EAction::RollSlam, Probability);
-	CombatWheel.Add(EAction::JumpSlam, Probability);
-}
-
-void AEnemyCharacter::AddAttacks(const uint32 Probability /* = 1 */)
-{
-	CombatWheel.Add(EAction::UpperCut, Probability);
-	CombatWheel.Add(EAction::DualSwordSwing, Probability);
-}
-
-void AEnemyCharacter::SpinCombatWheel()
-{
-	//this could be Blueprint function
-	
-	UE_LOG(LogSoulsAI, Warning, TEXT("SpinCombatWheel(): "));
-	
-	uint32 ProbabilitiesTotal = 0;
-	for (const auto& Pair : CombatWheel)
-	{
-		ProbabilitiesTotal += Pair.Value;
-		UE_LOG(LogSoulsAI, Warning, TEXT("- Action: %s, Probability: %u"), *UEnum::GetValueAsString(Pair.Key), Pair.Value);
-	}
-	
-	UE_LOG(LogSoulsAI, Warning, TEXT("ProbabilitiesTotal = %u"), ProbabilitiesTotal);
-
-	if (ProbabilitiesTotal == 0)
-	{
-		SelectedGoal = EGoal::Idle;
-		return;
-	}
-	
-	const int32 Fate = FMath::RandRange(1, ProbabilitiesTotal);
-	int32 TempFate = 0;
-	EAction SelectedAction = EAction::None;
-	for (const auto& Pair : CombatWheel)
-	{
-		TempFate += Pair.Value;
-		if (TempFate >= Fate)
-		{
-			SelectedAction = Pair.Key;
-			break;
-		}
-	}
-	UE_LOG(LogSoulsAI, Warning, TEXT("SelectedAction: %s"), *UEnum::GetValueAsString(SelectedAction));
-
-	PerformAction(SelectedAction);
-}
-
-void AEnemyCharacter::PerformAction(const EAction Action)
-{
-	//this could be transitions in state tree I guess?
-	switch (Action)
-	{
-		// Long Attacks
-		case EAction::DashSlash:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_DashSlash;
-			SelectedGoal = EGoal::Attack;
-			break;
-		case EAction::ChargeTwoHandStab:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_ChargeTwoHandStab;
-			SelectedGoal = EGoal::Attack;
-			break;
-		case EAction::LeapStab:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_LeapStab;
-			SelectedGoal = EGoal::Attack;
-			break;
-		case EAction::RollSlam:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_RollSlam;
-			SelectedGoal = EGoal::Attack;
-			break;
-		case EAction::JumpSlam:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_JumpSlam;
-			SelectedGoal = EGoal::Attack;
-			break;
-
-		// Attacks
-		case EAction::UpperCut:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_UpperCut;
-			SelectedGoal = EGoal::Attack;
-			break;
-		case EAction::DualSwordSwing:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_DualSwordSwing;
-			SelectedGoal = EGoal::Attack;
-			break;
-		
-		// Combos
-		case EAction::DualSwordSwingRepeat:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_DualSwordSwing;
-			SelectedGoal = EGoal::Attack_Repeat;
-			AttackCombo();
-			break;
-		case EAction::DualSwordSwingFinal:
-			bShouldRotateToTarget = true;
-			CurrentMontage = AM_DualSwordSwing;
-			SelectedGoal = EGoal::Attack_Final;
-			AttackCombo();
-			break;
-
-		// Movement
-		case EAction::Chase:
-			bShouldRotateToTarget = true;
-			SelectedGoal = EGoal::Chase;
-			break;
-		case EAction::Strafe:
-			bShouldRotateToTarget = true;
-			SelectedGoal = EGoal::Strafe;
-			break;
-
-		// Dodge
-		// case EAction::Roll:
-		// 	// Roll -> SelectGoal()
-		// 	SelectedGoal = EGoal::Roll;
-		// 	break;
-
-		// Cooldown
-		// case EAction::Cooldown:
-		// 	SelectedGoal = EGoal::Cooldown;
-		// 	break;
-
-		default:
-			SelectedGoal = EGoal::Idle;
-			break;
-	}
-	
-}
-
-// void CheckSubgoals()
-// {
-// 	while (! Subgoals.IsEmpty())
-// 	{
-// 		switch (const EGoal NewGoal = Subgoals[0])
-// 		{
-// 			case EGoal::Attack:
-// 			case EGoal::Attack_Repeat:
-// 			case EGoal::Attack_Final:
-// 				{
-// 					Subgoals.RemoveAt(0);
-// 					// If the player distance is bigger than AttackRadius * 2, do not attack since he is too far.
-// 					if (TargetInAttackRange)
-// 					{
-// 						SelectedGoal = NewGoal;
-// 						return;
-// 					}
-// 					break;
-// 				}
-// 			default:
-// 				{
-// 					SelectedGoal = NewGoal;
-// 					Subgoals.RemoveAt(0);
-// 					return;
-// 				}
-// 		}
-// 	}
-// 	SelectedGoal = EGoal::Idle;
-// }
