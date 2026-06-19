@@ -23,7 +23,9 @@ struct FWeightedAction
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
 	int32 Probability = 1;
 	
-	//TODO add montage variable and max range variables -> utility AI -> if player is further, probability is less
+	//TODO add montage variable 
+	//TODO and max and min range variables -> utility AI -> if player is further, probability is less
+	// for instance rollslam can be performed only if the player is in interval 500-700
 };
 
 UCLASS()
