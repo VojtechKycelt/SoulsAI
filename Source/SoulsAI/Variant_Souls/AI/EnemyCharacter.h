@@ -61,7 +61,7 @@ public:
 	
 	/** Attack */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual void Attack();
+	virtual void Attack(UAnimMontage *Montage);
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void AttackCombo();
@@ -185,7 +185,11 @@ public:
 	/** Current montage that is being played. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	UAnimMontage* CurrentMontage = nullptr;
-
+	
+	// Radius in which player is attacked.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
+	int32 AttackActionCounter = 0;
+	
 protected:
 	// Selected target to look at / attack.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))

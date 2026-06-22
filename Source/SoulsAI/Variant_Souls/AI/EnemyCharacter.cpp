@@ -153,9 +153,10 @@ EAction AEnemyCharacter::SelectActionFromCombatWheel()
 	return EAction::None;
 }
 
-void AEnemyCharacter::Attack()
+void AEnemyCharacter::Attack(UAnimMontage *Montage)
 {
 	// UE_LOG(LogSoulsAI, Warning, TEXT("ATTACK"));
+	CurrentMontage = Montage;
 	AnimInstance->Montage_Play(CurrentMontage); //can specify InPlayRate float to slower AM for easier difficulty
 	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, CurrentMontage);
 	bAttackMontageEnded = false;
@@ -212,7 +213,7 @@ void AEnemyCharacter::UpdateCombatWheel()
 			}
 			break;
 
-		case EGoal::Attack:
+		case EGoal::Combat:
 				if (TargetInAttackRange && CurrentMontageSectionCount > 1)
 				{
 					CombatWheel.Add(EAction::DualSwordSwingRepeat, 4);
@@ -220,35 +221,35 @@ void AEnemyCharacter::UpdateCombatWheel()
 				CombatWheel.Add(EAction::Strafe, 1);
 
 			break;
-		case EGoal::Attack_Repeat:
-				if (TargetInAttackRange)
-				{
-					if (CurrentComboIndex < (CurrentMontageSectionCount - 2))
-					{
-						CombatWheel.Add(EAction::DualSwordSwingRepeat, 4);
-					} else
-					{
-						CombatWheel.Add(EAction::DualSwordSwingFinal, 4);
-					}
-				}
-				CombatWheel.Add(EAction::Strafe, 1);
-			break;
-		case EGoal::Attack_Final:
-				// CombatWheel.Add(EAction::Cooldown, 5);
-				// CombatWheel.Add(EAction::Roll, 5);
-				CombatWheel.Add(EAction::Strafe, 2);
-				if (TargetInAttackRange)
-				{
-					// AddAttacks(1);
-				} else
-				{
-					CombatWheel.Add(EAction::Chase, 2);
-					if (DistanceToTarget < LongAttackRadius)
-					{
-						// AddLongAttacks(1);
-					}
-				}
-			break;
+		// case EGoal::Attack_Repeat:
+		// 		if (TargetInAttackRange)
+		// 		{
+		// 			if (CurrentComboIndex < (CurrentMontageSectionCount - 2))
+		// 			{
+		// 				CombatWheel.Add(EAction::DualSwordSwingRepeat, 4);
+		// 			} else
+		// 			{
+		// 				CombatWheel.Add(EAction::DualSwordSwingFinal, 4);
+		// 			}
+		// 		}
+		// 		CombatWheel.Add(EAction::Strafe, 1);
+		// 	break;
+		// case EGoal::Attack_Final:
+		// 		// CombatWheel.Add(EAction::Cooldown, 5);
+		// 		// CombatWheel.Add(EAction::Roll, 5);
+		// 		CombatWheel.Add(EAction::Strafe, 2);
+		// 		if (TargetInAttackRange)
+		// 		{
+		// 			// AddAttacks(1);
+		// 		} else
+		// 		{
+		// 			CombatWheel.Add(EAction::Chase, 2);
+		// 			if (DistanceToTarget < LongAttackRadius)
+		// 			{
+		// 				// AddLongAttacks(1);
+		// 			}
+		// 		}
+		// 	break;
 				
 		default:
 			break;
