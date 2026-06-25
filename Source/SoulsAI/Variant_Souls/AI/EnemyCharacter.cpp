@@ -88,8 +88,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 
 		const float TargetYaw = DirectionToTarget.Rotation().Yaw;
 		const float CurrentYaw = GetActorRotation().Yaw;
-		constexpr float RotationThreshold = 30.0f; //degrees
-		bIsRotatedToTarget = (FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw))) < (RotationThreshold);
+		bIsRotatedToTarget = (FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw))) < (RotationToTargetThreshold);
 	}
 	
 } 

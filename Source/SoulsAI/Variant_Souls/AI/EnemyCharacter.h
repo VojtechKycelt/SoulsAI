@@ -72,49 +72,17 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float ChaseSightRadius = 1500.0f;
 
-	// Radius in which player is attacked.
+	// Radius in which player can be close range attacked.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float AttackRadius = 300.0f;
 	
-	// Radius in which player is attacked.
+	// Radius in which player can be long range attacked.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	float LongAttackRadius = 1200.0f;
-
-	/** Animation Montages to easily and correctly assign animation to correct action. */
-	/** Long Attack Anim Montages */
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
-	UAnimMontage* AM_DashSlash; // Long Sweep
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
-	UAnimMontage* AM_ChargeTwoHandStab;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
-	UAnimMontage* AM_LeapStab;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
-	UAnimMontage* AM_RollSlam;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Long")
-	UAnimMontage* AM_JumpSlam;
-	
-	/** Close Attack Anim Montages */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Close")
-	UAnimMontage* AM_UpperCut;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Attack | Close")
-	UAnimMontage* AM_DualSwordSwing;
-	
-	/** Dodge Anim Montages */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_RollForward;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_RollLeft;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_RollRight;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_RollBackward;
-	
-	/** Interaction on getting hit Montages*/
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_GetHit;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AnimationMontage | Deffence")
-	UAnimMontage* AM_Death;
+	// Rotation threshold in degrees within the character is considered rotated to selected target.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
+	float RotationToTargetThreshold = 30.0f;
 	
 	UPROPERTY()
 	UEnemyAnimInstance* AnimInstance;
