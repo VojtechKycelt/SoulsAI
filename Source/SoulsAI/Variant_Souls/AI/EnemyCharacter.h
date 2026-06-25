@@ -12,22 +12,6 @@
 class UWidgetComponent;
 class UEnemyAnimInstance;
 
-USTRUCT(BlueprintType)
-struct FWeightedAction
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EAction Action = EAction::None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = "0"))
-	int32 Probability = 1;
-	
-	//TODO add montage variable 
-	//TODO and max and min range variables -> utility AI -> if player is further, probability is less
-	// for instance rollslam can be performed only if the player is in interval 500-700
-};
-
 UCLASS()
 class SOULSAI_API AEnemyCharacter : public ACharacter
 {
@@ -42,29 +26,6 @@ public:
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
-	/** Clears combat goal */
-	UFUNCTION(BlueprintCallable)
-	virtual void ClearCombatWheel();
-	
-	/** Adds an action with a selection weight to the combat wheel */
-	UFUNCTION(BlueprintCallable)
-	virtual void AddActionToCombatWheel(const EAction Action, const int32 Probability = 1);
-	
-	/** Adds array of actions with a selection weight to the combat wheel */
-	UFUNCTION(BlueprintCallable)
-	void AddActionArrayToCombatWheel(const TArray<FWeightedAction>& Actions);
-	
-	// Returns random action based on probabilities of CombatWheel.
-	UFUNCTION(BlueprintCallable)
-	EAction SelectActionFromCombatWheel();
-	
-	/** Attack */
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual void Attack(UAnimMontage *Montage);
-	
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual void AttackCombo();
 	
 	/** HEALTH STATS */
 	
@@ -158,27 +119,15 @@ public:
 	UPROPERTY()
 	UEnemyAnimInstance* AnimInstance;
 	
-	/** Attack montage ended delegate */
-	FOnMontageEnded OnAttackMontageEnded;
-	
-	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Combat")
-	bool bAttackMontageEnded = false;
-	
-	/** Can be used for any task to be completed prematurely when we set this bool to true. */
-	UPROPERTY(BlueprintReadWrite, Category = "Combat")
-	bool bShouldEndTask = false;
-	
-	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	/** If character should rotate to target. */
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bShouldRotateToTarget = true;
 	
-	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	/** If character is rotated to target. */
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	bool bIsRotatedToTarget = false;
 	
-	/** Can be used for any task to be completed prematurely when we set this bool to true. */
+	/** Rotation Speed. */
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
 	float RotationSpeed = 100.0f;
 	
@@ -186,7 +135,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	UAnimMontage* CurrentMontage = nullptr;
 	
-	// Radius in which player is attacked.
+	// Counts number of attack actions since last reposition - used in State Tree to increase probability of reposition.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	int32 AttackActionCounter = 0;
 	
@@ -203,21 +152,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
 	TArray<EGoal> Subgoals = TArray<EGoal>();
 	
-	// Array of all goals this character can select. Should be set in blueprint editor.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI", meta = (AllowPrivateAccess = "true"))
-	TArray<EGoal> RelevantGoals = TArray<EGoal>(); //maybe drop the constructor? or unify all of them
-	
-	// Map of probabilities of each goal
-	UPROPERTY()
-	TMap<EAction, uint32> CombatWheel;
-	
-	// Update probabilities for each relevant goal.
-	void UpdateCombatWheel();
-	
 	// Section names for Montages with more sections to be able to jump to another section without changing montage.
 	// Could be a 2D Array/Map that maps section names for each montage.
 	// For now sections names are named only Attack1, Attack2,...
-	UPROPERTY(EditAnywhere, Category="Attack|Combo")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TArray<FName> ComboSectionNames;
 	
 	/** Current index of combo animation montage. */
