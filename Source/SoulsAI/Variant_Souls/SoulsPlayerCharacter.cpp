@@ -431,7 +431,7 @@ void ASoulsPlayerCharacter::CheckCombo()
 
 void ASoulsPlayerCharacter::GetHit(const float Damage)
 {
-	if (!AnimInstance || AnimInstance->bIsRolling || AnimInstance->bIsRecovering) return;
+	if (!AnimInstance || AnimInstance->bIsRolling) return; //|| AnimInstance->bIsRecovering
 	
 	CurrentHP -= Damage;
 	
@@ -453,6 +453,10 @@ void ASoulsPlayerCharacter::GetHit(const float Damage)
 
 void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (bInterrupted)
+	{
+		return;
+	}
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	AnimInstance->bIsRecovering = false;
 }
@@ -464,7 +468,7 @@ void ASoulsPlayerCharacter::HandleDeath()
 
 	// Disable movement while we are dead
 	GetCharacterMovement()->DisableMovement();
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	
 	// Enable full ragdoll physics
 	GetMesh()->SetSimulatePhysics(true);

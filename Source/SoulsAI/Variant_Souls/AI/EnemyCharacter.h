@@ -104,6 +104,7 @@ public:
 	UAnimMontage* CurrentMontage = nullptr;
 	
 	// Counts number of attack actions since last reposition - used in State Tree to increase probability of reposition.
+	//TODO rename to reposition probability
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	int32 AttackActionCounter = 0;
 	
