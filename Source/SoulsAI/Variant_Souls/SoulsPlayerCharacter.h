@@ -55,11 +55,29 @@ class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
 	void FindLockOnTarget();
 	
 public:
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float CurrentHP = 100.f;
 	
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float MaxHP = 100.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float CurrentStamina = 100.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float MaxStamina = 100.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float StaminaRecoverySpeed = 0.1f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float RollStaminaCost = 25.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float LightAttackStaminaCost = 30.f;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float HeavyAttackStaminaCost = 40.f;
 
 protected:
 	/** Input Actions for binding to correct functions. */

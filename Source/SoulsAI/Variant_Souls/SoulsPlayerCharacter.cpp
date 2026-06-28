@@ -100,6 +100,8 @@ void ASoulsPlayerCharacter::BeginPlay()
 // Called every frame
 void ASoulsPlayerCharacter::Tick(float DeltaTime)
 {
+	Super::Tick(DeltaTime);
+	
 	switch (CameraState)
 	{
 	case ECameraState::Default:
@@ -157,8 +159,11 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		MovementRight = 0.0f;
 		MovementForward = 0.0f;
 	}
-
-
+	if (!AnimInstance->bIsRolling)
+	{
+		CurrentStamina += StaminaRecoverySpeed * DeltaTime;
+		CurrentStamina = FMath::Clamp(CurrentStamina, 0.0f, MaxStamina);
+	}
 }
 
 bool ASoulsPlayerCharacter::CanPerformAction()
@@ -286,7 +291,13 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 	{
 		return;
 	}
-	// if (GetCharacterMovement()->Velocity.IsNearlyZero()) {
+	
+	if (CurrentStamina < RollStaminaCost)
+	{
+		return;
+	}
+	CurrentStamina -= RollStaminaCost;
+	
 	if ((MovementRight == 0.f) && (MovementForward == 0.f)) {
 		AnimInstance->Montage_Play(DodgeAnimMontage);
 	}
@@ -314,7 +325,6 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 				}
 				else
 				{
-					//TODO RollBackwardAnimMontage instead
 					AnimInstance->Montage_Play(RollBackwardAnimMontage);
 				}
 			}
@@ -329,32 +339,39 @@ void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
 void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
 	if (! CanPerformAction()) return;
+	
+	if (CurrentStamina < LightAttackStaminaCost)
+	{
+		return;
+	}
+	
 	if (! AnimInstance->IsAnyMontagePlaying()) 
 	{
+		CurrentStamina -= LightAttackStaminaCost;
 		AnimInstance->Montage_Play(LightAttackAnimMontage);
 		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
 	} else if (bComboInputWindowOpen)
 	{
-		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] bComboInputWindowOpen - should continue combo"));
 		bShouldContinueCombo = true;
 	}
 }
 
 void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 {
+	if (CurrentStamina < HeavyAttackStaminaCost)
+	{
+		return;
+	}
+
 	if (CanPerformAction())
 	{
+		CurrentStamina -= HeavyAttackStaminaCost;
 		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
-		//PlayAnimMontage(HeavyAttackAnimMontage);
 	}
 }
 
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (bInterrupted)
-	{
-		UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter] AttackMontageEnded by interrupting"));
-	}
 	CurrentComboIndex = 0;
 	bShouldContinueCombo = false;
 	bComboInputWindowOpen = false;
@@ -435,23 +452,24 @@ void ASoulsPlayerCharacter::CheckCombo()
 			bShouldContinueCombo = false;
 			bComboInputWindowOpen = false;
 			CurrentComboIndex = 1;
+			CurrentStamina -= LightAttackStaminaCost;
 		} else if (CurrentComboIndex == 1)
 		{
 			AnimInstance->Montage_JumpToSection("Attack3", LightAttackAnimMontage);
 			bShouldContinueCombo = false;
 			bComboInputWindowOpen = false;
 			CurrentComboIndex = 2;
+			CurrentStamina -= LightAttackStaminaCost;
 		}
 	}
 }
 
 void ASoulsPlayerCharacter::GetHit(const float Damage)
 {
-	if (!AnimInstance || AnimInstance->bIsRolling) return; //|| AnimInstance->bIsRecovering
+	if (!AnimInstance || AnimInstance->bIsRolling) return;
 	
 	CurrentHP -= Damage;
-	
-	UE_LOG(LogSoulsAI, Warning, TEXT("CurrHP: %f"), CurrentHP);
+	CurrentHP = FMath::Clamp(CurrentHP, 0.0f, MaxHP);
 	
 	if (CurrentHP <= 0.0f)
 	{
