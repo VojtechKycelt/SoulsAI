@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "SoulsPlayerCharacterAnimInstance.h"
 #include "Logging/LogMacros.h"
 #include "SoulsPlayerCharacter.generated.h"
 
@@ -121,7 +120,7 @@ protected:
 	TArray<FName> ComboSectionNames;
 	
 	UPROPERTY()
-	USoulsPlayerCharacterAnimInstance* AnimInstance;
+	UAnimInstance* AnimInstance;
 	
 	/** Attack montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
@@ -137,6 +136,18 @@ public:
 	int32 CurrentComboIndex = 0;
 	
 	bool bShouldContinueCombo = false;
+	
+	// If any attack animation is in progress.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation state")
+	bool bIsAttacking = false;
+	
+	// If character is currently recovering after taking damage.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
+	bool bIsRecovering = false;
+	
+	// If character is currently rolling and can not be damaged.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
+	bool bIsRolling = false;
 	
 protected:
 	/** Initialize input action bindings */

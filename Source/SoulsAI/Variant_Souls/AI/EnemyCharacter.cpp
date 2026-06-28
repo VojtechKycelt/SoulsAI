@@ -2,7 +2,6 @@
 
 
 #include "Variant_Souls/AI/EnemyCharacter.h"
-#include "EnemyAnimInstance.h"
 #include "SoulsAI.h"
 #include "BaseGizmos/GizmoElementShared.h"
 #include "Components/WidgetComponent.h"
@@ -27,7 +26,7 @@ AEnemyCharacter::AEnemyCharacter()
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	AnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+	AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance)
 	{
 		UE_LOG(LogSoulsAI, Error, TEXT("[AEnemyCharacter] AnimInstance is null"));

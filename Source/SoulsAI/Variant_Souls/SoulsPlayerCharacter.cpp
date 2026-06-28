@@ -89,7 +89,7 @@ void ASoulsPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 void ASoulsPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	AnimInstance = Cast<USoulsPlayerCharacterAnimInstance>(GetMesh()->GetAnimInstance());
+	AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance)
 	{
 		UE_LOG(LogSoulsAI, Error, TEXT("[ASoulsPlayerCharacter] AnimInstance is null"));
@@ -127,7 +127,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		}
 		
 		// Character faces enemy
-		if (! AnimInstance->bIsRecovering)
+		if (! bIsRecovering)
 		{
 			FVector ToEnemy = LockedTarget->GetActorLocation() - GetActorLocation();
 			ToEnemy.Z = 0.f;
@@ -159,7 +159,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		MovementRight = 0.0f;
 		MovementForward = 0.0f;
 	}
-	if (!AnimInstance->bIsRolling)
+	if (! bIsRolling && !bIsAttacking)
 	{
 		CurrentStamina += StaminaRecoverySpeed * DeltaTime;
 		CurrentStamina = FMath::Clamp(CurrentStamina, 0.0f, MaxStamina);
@@ -169,7 +169,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 bool ASoulsPlayerCharacter::CanPerformAction()
 {
 	if (!AnimInstance) return false;
-	if (AnimInstance->bIsRolling || GetCharacterMovement()->IsFalling() || AnimInstance->bIsRecovering) return false;
+	if (bIsRolling || GetCharacterMovement()->IsFalling() || bIsRecovering) return false;
 	return true;
 }
 
@@ -347,6 +347,7 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 	
 	if (! AnimInstance->IsAnyMontagePlaying()) 
 	{
+		bIsAttacking = true;
 		CurrentStamina -= LightAttackStaminaCost;
 		AnimInstance->Montage_Play(LightAttackAnimMontage);
 		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
@@ -365,13 +366,39 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 
 	if (CanPerformAction())
 	{
+		bIsAttacking = true;
 		CurrentStamina -= HeavyAttackStaminaCost;
 		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
 	}
 }
 
+void ASoulsPlayerCharacter::CheckCombo()
+{
+	if (bShouldContinueCombo)
+	{
+		if (CurrentComboIndex == 0)
+		{
+			bIsAttacking = true;
+			AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
+			bShouldContinueCombo = false;
+			bComboInputWindowOpen = false;
+			CurrentComboIndex = 1;
+			CurrentStamina -= LightAttackStaminaCost;
+		} else if (CurrentComboIndex == 1)
+		{
+			bIsAttacking = true;
+			AnimInstance->Montage_JumpToSection("Attack3", LightAttackAnimMontage);
+			bShouldContinueCombo = false;
+			bComboInputWindowOpen = false;
+			CurrentComboIndex = 2;
+			CurrentStamina -= LightAttackStaminaCost;
+		}
+	}
+}
+
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	bIsAttacking = false;
 	CurrentComboIndex = 0;
 	bShouldContinueCombo = false;
 	bComboInputWindowOpen = false;
@@ -442,31 +469,11 @@ void ASoulsPlayerCharacter::DoJumpEnd()
 	StopJumping();
 }
 
-void ASoulsPlayerCharacter::CheckCombo()
-{
-	if (bShouldContinueCombo)
-	{
-		if (CurrentComboIndex == 0)
-		{
-			AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
-			bShouldContinueCombo = false;
-			bComboInputWindowOpen = false;
-			CurrentComboIndex = 1;
-			CurrentStamina -= LightAttackStaminaCost;
-		} else if (CurrentComboIndex == 1)
-		{
-			AnimInstance->Montage_JumpToSection("Attack3", LightAttackAnimMontage);
-			bShouldContinueCombo = false;
-			bComboInputWindowOpen = false;
-			CurrentComboIndex = 2;
-			CurrentStamina -= LightAttackStaminaCost;
-		}
-	}
-}
+
 
 void ASoulsPlayerCharacter::GetHit(const float Damage)
 {
-	if (!AnimInstance || AnimInstance->bIsRolling) return;
+	if (!AnimInstance || bIsRolling) return;
 	
 	CurrentHP -= Damage;
 	CurrentHP = FMath::Clamp(CurrentHP, 0.0f, MaxHP);
@@ -482,7 +489,7 @@ void ASoulsPlayerCharacter::GetHit(const float Damage)
 
 	// Disable movement while we are recovering
 	GetCharacterMovement()->DisableMovement();
-	AnimInstance->bIsRecovering = true;
+	bIsRecovering = true;
 }
 
 void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -492,7 +499,7 @@ void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInte
 		return;
 	}
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-	AnimInstance->bIsRecovering = false;
+	bIsRecovering = false;
 }
 
 void ASoulsPlayerCharacter::HandleDeath()

@@ -10,7 +10,6 @@
 #include "EnemyCharacter.generated.h"
 
 class UWidgetComponent;
-class UEnemyAnimInstance;
 
 UCLASS()
 class SOULSAI_API AEnemyCharacter : public ACharacter
@@ -88,7 +87,7 @@ public:
 	float RotationToTargetThreshold = 30.0f;
 	
 	UPROPERTY()
-	UEnemyAnimInstance* AnimInstance;
+	UAnimInstance* AnimInstance;
 	
 	/** If character should rotate to target. */
 	UPROPERTY(BlueprintReadWrite, Category = "Combat")
