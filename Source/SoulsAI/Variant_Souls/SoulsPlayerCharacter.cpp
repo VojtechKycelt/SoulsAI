@@ -111,6 +111,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 				5.f));
 		break;
 	case ECameraState::Locked:
+		//TODO IF TARGET IS DEAD -> move is DEAD to c++ --- but first commit safe
 		if (!LockedTarget || FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius)
 		{
 			TryLockOn();
