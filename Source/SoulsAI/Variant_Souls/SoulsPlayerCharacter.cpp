@@ -111,11 +111,17 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 				5.f));
 		break;
 	case ECameraState::Locked:
-		//TODO IF TARGET IS DEAD -> move is DEAD to c++ --- but first commit safe
-		if (!LockedTarget || FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius)
+		if (!LockedTarget || (FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius))
 		{
 			TryLockOn();
 			break;
+		} else if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(LockedTarget))
+		{
+			if (EnemyTarget->bIsDead)
+			{
+				TryLockOn();
+				break;
+			}
 		}
 		
 		// Character faces enemy
@@ -216,7 +222,16 @@ void ASoulsPlayerCharacter::FindLockOnTarget()
         {
             continue;
         }
-
+    	
+    	// If enemy is dead, ignore it.
+    	if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(Actor))
+        {
+        	if (EnemyTarget->bIsDead)
+        	{
+        		continue;
+        	}
+        }
+    	
         // BestDot = most centered in camera view = BestTarget
         if (Dot > BestDot)
         {

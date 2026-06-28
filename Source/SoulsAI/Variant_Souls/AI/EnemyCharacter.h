@@ -37,6 +37,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats | Health", meta = (ClampMin = 0))
 	float CurrentHP = 0.0f;
 	
+	UPROPERTY(BlueprintReadWrite,EditAnywhere, Category = "Stats | Health")
+	bool bIsDead = false;
+	
 	/** DEFENSE STATS */
 	// Used for receiving damage calculations in combat.
 	
