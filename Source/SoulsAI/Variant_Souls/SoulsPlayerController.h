@@ -31,5 +31,7 @@ protected:
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input | Input Mappings")
 	class UInputAction* PauseAction;
-	void Pause();
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void PauseGame();
 };

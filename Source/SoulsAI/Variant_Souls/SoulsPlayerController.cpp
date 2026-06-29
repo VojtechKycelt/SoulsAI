@@ -30,7 +30,7 @@ void ASoulsPlayerController::SetupInputComponent()
 		if (PauseAction)
 		{
 			PauseAction->bTriggerWhenPaused = true; // Required!
-			EnhancedInput->BindAction(PauseAction, ETriggerEvent::Triggered, this, &ASoulsPlayerController::Pause);
+			EnhancedInput->BindAction(PauseAction, ETriggerEvent::Triggered, this, &ASoulsPlayerController::PauseGame);
 		}
 	}
 }
@@ -38,16 +38,4 @@ void ASoulsPlayerController::SetupInputComponent()
 void ASoulsPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-}
-
-void ASoulsPlayerController::Pause()
-{
-	//Super::Pause();
-	UE_LOG(LogTemp, Warning, TEXT("[ASoulsPlayerController::Pause] Not implemented"));
-
-	// if (ASoulsHUD* HUD = Cast<ASoulsHUD>(GetHUD()))
-	// {
-	// 	HUD->PauseMenu();
-	// }
-	//
 }
