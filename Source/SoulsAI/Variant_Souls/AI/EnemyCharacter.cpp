@@ -38,6 +38,10 @@ void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if (bIsDead)
+	{
+		return;
+	}
 	// Update UI
 	if (SelectedTarget)
 	{
