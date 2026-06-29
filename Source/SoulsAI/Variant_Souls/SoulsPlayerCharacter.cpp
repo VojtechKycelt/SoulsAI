@@ -23,7 +23,7 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false; // true causes rotation jitter
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
@@ -111,6 +111,30 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 				CameraBoom->PreviousDesiredRot, 
 				DeltaTime, 
 				5.f));
+		
+		// Character faces the movement direction - velocity
+		// Custom orient-rotation-to-movement because the built-in one causes jitter
+		if (!bIsRecovering && !bIsRolling && !bIsAttacking)
+		{
+			FVector CurrentDir = GetActorRotation().Vector();
+			CurrentDir.Z = 0.f;
+			CurrentDir.Normalize();
+			
+			FVector TargetDir = GetVelocity();
+			TargetDir.Z = 0.f;
+			TargetDir.Normalize();
+			
+			if (! TargetDir.IsNearlyZero())
+			{
+				SetActorRotation(
+					FMath::RInterpConstantTo(
+						CurrentDir.Rotation(), 
+						TargetDir.Rotation(),
+						DeltaTime, 
+						GetCharacterMovement()->RotationRate.Yaw));
+			}
+		}
+		
 		break;
 	case ECameraState::Locked:
 		if (!LockedTarget || (FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius))
@@ -127,17 +151,17 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		}
 		
 		// Character faces enemy
-		if (! bIsRecovering)
+		if (! bIsRecovering && !bIsRolling)
 		{
 			FVector ToEnemy = LockedTarget->GetActorLocation() - GetActorLocation();
 			ToEnemy.Z = 0.f;
 			ToEnemy.Normalize();
 			SetActorRotation(
-				FMath::RInterpTo(
+				FMath::RInterpConstantTo(
 					GetActorRotation(), 
 					ToEnemy.Rotation(),
 					DeltaTime, 
-					GetCharacterMovement()->RotationRate.Yaw / 100.f));
+					GetCharacterMovement()->RotationRate.Yaw));
 		}
 		
 		// Camera looks at enemy
@@ -253,7 +277,6 @@ void ASoulsPlayerCharacter::TryLockOn()
     if (LockedTarget)
     {
         CameraState = ECameraState::Default;
-    	GetCharacterMovement()->bOrientRotationToMovement = true;
         LockedTarget = nullptr;
         return;
     }
@@ -263,7 +286,6 @@ void ASoulsPlayerCharacter::TryLockOn()
     if (LockedTarget)
     {
         CameraState = ECameraState::Locked;
-    	GetCharacterMovement()->bOrientRotationToMovement = false;
     }
 }
 
