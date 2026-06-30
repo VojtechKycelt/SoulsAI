@@ -21,6 +21,15 @@ enum class ECameraState : uint8
 	Cinematic   UMETA(DisplayName = "Cinematic")
 };
 
+UENUM(BlueprintType)
+enum class ECachedInputType : uint8
+{
+	None			UMETA(DisplayName = "None"),
+	Roll			UMETA(DisplayName = "Roll"),
+	LightAttack     UMETA(DisplayName = "LightAttack"),
+	HeavyAttack		UMETA(DisplayName = "HeavyAttack")
+};
+
 /**
 * Player-controllable third person character.
 * Implements a controllable orbiting camera.
@@ -83,6 +92,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* JumpAction;
 	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* CameraLockAction;
+	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* MoveAction;
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* LookAction;
@@ -125,6 +136,7 @@ protected:
 	/** Attack montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnMontageEnded OnGetHitMontageEnded;
+	FOnMontageEnded OnRollMontageEnded;
 
 public:
 	/** Whether mid-combo attack input press plays another section of combo montage. */
@@ -136,6 +148,29 @@ public:
 	int32 CurrentComboIndex = 0;
 	
 	bool bShouldContinueCombo = false;
+	
+	/** Type of cached input. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	ECachedInputType CachedInputType = ECachedInputType::None;
+	
+	/** Cached movement input right. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	float MovementRightCached = 0.0f;
+	
+	/** Cached movement input forward. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	float MovementForwardCached = 0.0f;
+	
+	/** Time at which an action input was last pressed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	float InputCachedTime = 0.0f;
+	
+	/** Max amount of time that may elapse for a buffered input to be considered valid. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input", meta = (ClampMin = 0, ClampMax = 2, Units = "s"))
+	float InputCachedTimeTolerance = 0.25f;
+	
+	/** Called on montage ended delegates to check if any buffered input can be executed. */
+	void CheckCachedInput();
 	
 	// If any attack animation is in progress.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation state")
@@ -149,7 +184,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
 	bool bIsRolling = false;
 	
-protected:
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -159,20 +193,27 @@ protected:
 	/** Called every frame */
 	virtual void Tick(float DeltaTime) override;
 
+protected:
 	bool CanPerformAction();
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
+	void MoveCompleted(const FInputActionValue& Value);
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	/** Called for rolling input */
-	void Roll(const FInputActionValue& Value);
-
-	/** Called for attacking inputs */
-	void LightAttack(const FInputActionValue& Value);
-	void HeavyAttack(const FInputActionValue& Value);
+	/** Called when RollAction input is pressed. */
+	void RollPressed(const FInputActionValue& Value);
+	void Roll();
+	
+	/** Called when LightAttackAction input is pressed. */
+	void LightAttackPressed(const FInputActionValue& Value);
+	void LightAttack();
+	
+	/** Called when HeavyAttackAction input is pressed. */
+	void HeavyAttackPressed(const FInputActionValue& Value);
+	void HeavyAttack();
 
 	/** Wrapper function for Jump to decline jump if there is conditions preventing it (like rolling) */
 	void SoulsJump(const FInputActionValue& Value);
@@ -183,6 +224,8 @@ protected:
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 	void GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	void RollMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
 	ECameraState CameraState = ECameraState::Default;

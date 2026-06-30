@@ -45,9 +45,35 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	
 	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
 	OnGetHitMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::GetHitMontageEnded);
+	OnRollMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::RollMontageEnded);
 	
 	//Stats
 	CurrentHP = MaxHP;
+}
+
+void ASoulsPlayerCharacter::CheckCachedInput()
+{
+	if (GetWorld()->GetTimeSeconds() - InputCachedTime <= InputCachedTimeTolerance)
+	{
+		InputCachedTime = 0.0f;
+
+		switch (CachedInputType)
+		{
+			case ECachedInputType::Roll:
+				Roll();
+				break;
+			case ECachedInputType::LightAttack:
+				LightAttack();
+				break;
+			case ECachedInputType::HeavyAttack:
+				HeavyAttack();
+				break;
+			default:
+				break;
+		}
+		
+		CachedInputType = ECachedInputType::None;
+	}
 }
 
 // Called to bind functionality to input
@@ -62,21 +88,24 @@ void ASoulsPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		// EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::SoulsJump);
 		
 		// Camera
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::CameraTargetLock);
+		EnhancedInputComponent->BindAction(CameraLockAction, ETriggerEvent::Started, this, &ASoulsPlayerCharacter::CameraTargetLock);
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASoulsPlayerCharacter::MoveCompleted);
 
 		// Looking
+		// Mouse
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Look);
+		// Controller
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Look);
 
 		//Rolling
-		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::Roll);
+		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::RollPressed);
 
 		//Attacks
-		EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::LightAttack);
-		EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::HeavyAttack);
+		EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::LightAttackPressed);
+		EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::HeavyAttackPressed);
 	}
 	else
 	{
@@ -298,6 +327,12 @@ void ASoulsPlayerCharacter::Move(const FInputActionValue& Value)
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
+void ASoulsPlayerCharacter::MoveCompleted(const FInputActionValue& Value)
+{
+	MovementRight   = 0.0f;
+	MovementForward = 0.0f;
+}
+
 void ASoulsPlayerCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -307,58 +342,94 @@ void ASoulsPlayerCharacter::Look(const FInputActionValue& Value)
 	DoLook(LookAxisVector.X, -LookAxisVector.Y);
 }
 
-void ASoulsPlayerCharacter::Roll(const FInputActionValue& Value)
+void ASoulsPlayerCharacter::RollPressed(const FInputActionValue& Value)
 {
-	if (! CanPerformAction() || AnimInstance->IsAnyMontagePlaying())
+	MovementRightCached = MovementRight;
+	MovementForwardCached = MovementForward;
+	
+	if (AnimInstance->IsAnyMontagePlaying())
 	{
+		InputCachedTime = GetWorld()->GetTimeSeconds();
+		CachedInputType = ECachedInputType::Roll;
 		return;
 	}
 	
+	Roll();
+}
+
+void ASoulsPlayerCharacter::Roll()
+{
 	if (CurrentStamina < RollStaminaCost)
+	{
+		return;
+	}
+	if (! CanPerformAction())
 	{
 		return;
 	}
 	CurrentStamina -= RollStaminaCost;
 	
-	if ((MovementRight == 0.f) && (MovementForward == 0.f)) {
+	if ((MovementRightCached == 0.f) && (MovementForwardCached == 0.f)) {
 		AnimInstance->Montage_Play(DodgeAnimMontage);
+		AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, DodgeAnimMontage);
 	}
 	else {
 		if (CameraState == ECameraState::Locked)
 		{
-			if (FMath::Abs(MovementRight) > FMath::Abs(MovementForward))
+			if (FMath::Abs(MovementRightCached) > FMath::Abs(MovementForwardCached))
 			{
 				// predominantly moving sideways
-				if (MovementRight > 0.f)
+				if (MovementRightCached > 0.f)
 				{
 					AnimInstance->Montage_Play(RollRightAnimMontage);
+					AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollRightAnimMontage);
 				}
 				else
 				{
 					AnimInstance->Montage_Play(RollLeftAnimMontage);
+					AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollLeftAnimMontage);
 				}
 			}
 			else
 			{
 				// predominantly moving forward/backward
-				if (MovementForward >= 0.f)
+				if (MovementForwardCached >= 0.f)
 				{
 					AnimInstance->Montage_Play(RollForwardAnimMontage);
+					AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollForwardAnimMontage);
 				}
 				else
 				{
 					AnimInstance->Montage_Play(RollBackwardAnimMontage);
+					AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollBackwardAnimMontage);
 				}
 			}
 		} else
 		{
 			AnimInstance->Montage_Play(RollForwardAnimMontage);
+			AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollForwardAnimMontage);
 		}
 	}
-	
 }
 
-void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
+
+void ASoulsPlayerCharacter::RollMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		return;
+	}
+	CheckCachedInput();
+}
+
+void ASoulsPlayerCharacter::LightAttackPressed(const FInputActionValue& Value)
+{
+	InputCachedTime = GetWorld()->GetTimeSeconds();
+	CachedInputType = ECachedInputType::LightAttack;
+	LightAttack();
+}
+
+void ASoulsPlayerCharacter::LightAttack()
 {
 	if (! CanPerformAction()) return;
 	
@@ -367,7 +438,7 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 		return;
 	}
 	
-	if (! AnimInstance->IsAnyMontagePlaying()) 
+	 if (CurrentComboIndex == 0 && !bIsAttacking) 
 	{
 		bIsAttacking = true;
 		CurrentStamina -= LightAttackStaminaCost;
@@ -379,7 +450,14 @@ void ASoulsPlayerCharacter::LightAttack(const FInputActionValue& Value)
 	}
 }
 
-void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
+void ASoulsPlayerCharacter::HeavyAttackPressed(const FInputActionValue& Value)
+{
+	InputCachedTime = GetWorld()->GetTimeSeconds();
+	CachedInputType = ECachedInputType::HeavyAttack;
+	HeavyAttack();
+}
+
+void ASoulsPlayerCharacter::HeavyAttack()
 {
 	if (CurrentStamina < HeavyAttackStaminaCost)
 	{
@@ -391,6 +469,7 @@ void ASoulsPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 		bIsAttacking = true;
 		CurrentStamina -= HeavyAttackStaminaCost;
 		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
+		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, HeavyAttackAnimMontage);
 	}
 }
 
@@ -424,6 +503,7 @@ void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInte
 	CurrentComboIndex = 0;
 	bShouldContinueCombo = false;
 	bComboInputWindowOpen = false;
+	CheckCachedInput();
 }
 
 void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
@@ -491,11 +571,12 @@ void ASoulsPlayerCharacter::DoJumpEnd()
 	StopJumping();
 }
 
-
-
 void ASoulsPlayerCharacter::GetHit(const float Damage)
 {
 	if (!AnimInstance || bIsRolling) return;
+	
+	InputCachedTime = 0.0f;
+	CachedInputType = ECachedInputType::None;
 	
 	CurrentHP -= Damage;
 	CurrentHP = FMath::Clamp(CurrentHP, 0.0f, MaxHP);
