@@ -86,7 +86,19 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float HeavyAttackStaminaCost = 40.f;
+	
+	// Damage while performing LightAttack.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float LightAttackDamage = 10.f;
+	
+	// Damage while performing HeavyAttack.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float HeavyAttackDamage = 20.f;
 
+	// Current Damage target takes while getting hit.
+	UPROPERTY(BlueprintReadOnly)
+	float CurrentDamage = 10.f;
+	
 protected:
 	/** Input Actions for binding to correct functions. */
 	UPROPERTY(EditAnywhere, Category = "Input")

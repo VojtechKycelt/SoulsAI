@@ -49,6 +49,7 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	
 	//Stats
 	CurrentHP = MaxHP;
+	CurrentDamage = LightAttackDamage;
 }
 
 void ASoulsPlayerCharacter::CheckCachedInput()
@@ -438,6 +439,8 @@ void ASoulsPlayerCharacter::LightAttack()
 		return;
 	}
 	
+	CurrentDamage = LightAttackDamage;
+	
 	 if (CurrentComboIndex == 0 && !bIsAttacking) 
 	{
 		bIsAttacking = true;
@@ -454,6 +457,10 @@ void ASoulsPlayerCharacter::HeavyAttackPressed(const FInputActionValue& Value)
 {
 	InputCachedTime = GetWorld()->GetTimeSeconds();
 	CachedInputType = ECachedInputType::HeavyAttack;
+	if (AnimInstance->IsAnyMontagePlaying())
+	{
+		return;
+	}
 	HeavyAttack();
 }
 
@@ -466,6 +473,7 @@ void ASoulsPlayerCharacter::HeavyAttack()
 
 	if (CanPerformAction())
 	{
+		CurrentDamage = HeavyAttackDamage;
 		bIsAttacking = true;
 		CurrentStamina -= HeavyAttackStaminaCost;
 		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
@@ -517,7 +525,7 @@ void ASoulsPlayerCharacter::CheckRollAttack()
 			LightAttackAnimMontage->GetSectionStartAndEndTime(SectionIndex, SectionStart, SectionEnd);
 
 			const float StartTime = SectionStart + 0.2f;
-
+			CurrentDamage = LightAttackDamage;
 			AnimInstance->Montage_Play(
 				LightAttackAnimMontage,
 				1.1f,
