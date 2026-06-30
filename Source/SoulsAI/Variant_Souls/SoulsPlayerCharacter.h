@@ -259,6 +259,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void CheckCombo();
 	
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void CheckRollAttack();
+	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void GetHit(const float Damage);
 	

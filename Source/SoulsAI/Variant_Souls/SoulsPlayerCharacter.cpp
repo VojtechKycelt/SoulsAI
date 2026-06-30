@@ -497,6 +497,41 @@ void ASoulsPlayerCharacter::CheckCombo()
 	}
 }
 
+void ASoulsPlayerCharacter::CheckRollAttack()
+{
+	const bool bInputInCachedThreshold = GetWorld()->GetTimeSeconds() - InputCachedTime <= InputCachedTimeTolerance;
+	const bool bEnoughStamina = CurrentStamina > LightAttackStaminaCost;
+	const bool bCorrectCachedInput = CachedInputType == ECachedInputType::LightAttack;
+	
+	if (bInputInCachedThreshold && bEnoughStamina && bCorrectCachedInput)
+	{
+		bIsRolling = false;
+		bIsAttacking = true;
+		CurrentStamina -= LightAttackStaminaCost;
+		
+		const int32 SectionIndex = LightAttackAnimMontage->GetSectionIndex(TEXT("Attack3"));
+		if (SectionIndex != INDEX_NONE)
+		{
+			float SectionStart = 0.0f;
+			float SectionEnd   = 0.0f;
+			LightAttackAnimMontage->GetSectionStartAndEndTime(SectionIndex, SectionStart, SectionEnd);
+
+			const float StartTime = SectionStart + 0.2f;
+
+			AnimInstance->Montage_Play(
+				LightAttackAnimMontage,
+				1.1f,
+				EMontagePlayReturnType::MontageLength,
+				StartTime,
+				true);
+			AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
+		} else
+		{
+			UE_LOG(LogSoulsAI, Error, TEXT("[CheckRollAttack] No section found"));
+		}
+	}
+}
+
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bIsAttacking = false;
