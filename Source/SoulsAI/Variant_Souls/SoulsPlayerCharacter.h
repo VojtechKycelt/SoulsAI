@@ -99,6 +99,26 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	float CurrentDamage = 10.f;
 	
+	// Base movement speed when not using item.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float BaseMovementSpeed = 500.0f;
+	
+	// Base movement speed when not using item.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float UsingItemMovementSpeed = 300.0f;
+	
+	// Base movement speed when not using item.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	int32 MaxHealFlasksCount = 5;
+	
+	// Base movement speed when not using item.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	int32 CurrentHealFlasksCount = 5;
+	
+	// Base movement speed when not using item.
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	float HealthRestoredPerFlash = 30.0f;
+	
 protected:
 	/** Input Actions for binding to correct functions. */
 	UPROPERTY(EditAnywhere, Category = "Input")
@@ -117,7 +137,9 @@ protected:
 	UInputAction* LightAttackAction;
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* HeavyAttackAction;
-
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* UseItemAction;
+	
 	/** Animation Montages to easily and correctly assign animation to correct action. */
 	UPROPERTY(EditAnywhere, Category = "Animation | Dodge")
 	UAnimMontage* RollForwardAnimMontage;
@@ -137,6 +159,8 @@ protected:
 	UAnimMontage* GetHitAnimMontage;
 	UPROPERTY(EditAnywhere, Category = "Animation | Deffence")
 	UAnimMontage* DeathAnimMontage;
+	UPROPERTY(EditAnywhere, Category = "Animation | Item")
+	UAnimMontage* DrinkAnimMontage;
 
 	/** Names of the AnimMontage sections that correspond to each stage of the combo attack */
 	UPROPERTY(EditAnywhere, Category="Melee Attack|Combo")
@@ -148,6 +172,7 @@ protected:
 	/** Attack montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnMontageEnded OnGetHitMontageEnded;
+	FOnMontageEnded OnUseItemMontageEnded;
 	FOnMontageEnded OnRollMontageEnded;
 
 public:
@@ -194,6 +219,10 @@ public:
 	
 	// If character is currently rolling and can not be damaged.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
+	bool bIsHealing = false;
+	
+	// If character is currently rolling and can not be damaged.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
 	bool bIsRolling = false;
 	
 	/** Initialize input action bindings */
@@ -219,6 +248,13 @@ protected:
 	void RollPressed(const FInputActionValue& Value);
 	void Roll();
 	
+	/** Called when RollAction input is pressed. */
+	void UseItemPressed(const FInputActionValue& Value);
+	void UseItem();
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void UseItemInterrupted();
+	
 	/** Called when LightAttackAction input is pressed. */
 	void LightAttackPressed(const FInputActionValue& Value);
 	void LightAttack();
@@ -236,6 +272,8 @@ protected:
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 	void GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	void UseItemMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 	void RollMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	

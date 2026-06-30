@@ -45,6 +45,7 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	
 	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
 	OnGetHitMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::GetHitMontageEnded);
+	OnUseItemMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::UseItemMontageEnded);
 	OnRollMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::RollMontageEnded);
 	
 	//Stats
@@ -103,6 +104,9 @@ void ASoulsPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 		//Rolling
 		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::RollPressed);
+		
+		//Rolling
+		EnhancedInputComponent->BindAction(UseItemAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::UseItemPressed);
 
 		//Attacks
 		EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &ASoulsPlayerCharacter::LightAttackPressed);
@@ -223,7 +227,7 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 bool ASoulsPlayerCharacter::CanPerformAction()
 {
 	if (!AnimInstance) return false;
-	if (bIsRolling || GetCharacterMovement()->IsFalling() || bIsRecovering) return false;
+	if (bIsRolling || GetCharacterMovement()->IsFalling() || bIsRecovering || bIsHealing) return false;
 	return true;
 }
 
@@ -410,6 +414,26 @@ void ASoulsPlayerCharacter::Roll()
 			AnimInstance->Montage_Play(RollForwardAnimMontage);
 			AnimInstance->Montage_SetEndDelegate(OnRollMontageEnded, RollForwardAnimMontage);
 		}
+	}
+}
+
+void ASoulsPlayerCharacter::UseItemPressed(const FInputActionValue& Value)
+{
+	if (AnimInstance->IsAnyMontagePlaying())
+	{
+		return;
+	}
+	UseItem();
+}
+
+void ASoulsPlayerCharacter::UseItem()
+{
+	if (CanPerformAction() && CurrentHealFlasksCount > 0)
+	{
+		bIsHealing = true;
+		GetCharacterMovement()->MaxWalkSpeed = UsingItemMovementSpeed;
+		AnimInstance->Montage_Play(DrinkAnimMontage);
+		AnimInstance->Montage_SetEndDelegate(OnUseItemMontageEnded, DrinkAnimMontage);
 	}
 }
 
@@ -646,6 +670,16 @@ void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInte
 	}
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsRecovering = false;
+}
+
+void ASoulsPlayerCharacter::UseItemMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bInterrupted)
+	{
+		UseItemInterrupted();
+	}
+	bIsHealing = false;
+	GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
 }
 
 void ASoulsPlayerCharacter::HandleDeath()
