@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyright (c) 2026 Vojtech Kycelt, master's thesis project at the Faculty of Mathematics and Physics, Charles University, Prague
 
 #include "Variant_Souls/SoulsPlayerController.h"
 #include "EnhancedInputSubsystems.h"

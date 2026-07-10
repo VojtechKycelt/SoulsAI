@@ -1,12 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyright (c) 2026 Vojtech Kycelt, master's thesis project at the Faculty of Mathematics and Physics, Charles University, Prague
 
 #include "Variant_Souls/AI/EnemyCharacter.h"
 #include "SoulsAI.h"
-#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-// Sets default values
 AEnemyCharacter::AEnemyCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -18,6 +15,7 @@ AEnemyCharacter::AEnemyCharacter()
 	// Rotate character smoothly toward movement direction
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	
+	// Set the current hp to maximum amount of hp
 	CurrentHP = MaxHP;
 }
 
