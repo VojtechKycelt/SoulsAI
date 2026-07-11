@@ -25,19 +25,6 @@ public class SoulsAI : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"SoulsAI",
-			"SoulsAI/Variant_Platforming",
-			"SoulsAI/Variant_Platforming/Animation",
-			"SoulsAI/Variant_Combat",
-			"SoulsAI/Variant_Combat/AI",
-			"SoulsAI/Variant_Combat/Animation",
-			"SoulsAI/Variant_Combat/Gameplay",
-			"SoulsAI/Variant_Combat/Interfaces",
-			"SoulsAI/Variant_Combat/UI",
-			"SoulsAI/Variant_SideScrolling",
-			"SoulsAI/Variant_SideScrolling/AI",
-			"SoulsAI/Variant_SideScrolling/Gameplay",
-			"SoulsAI/Variant_SideScrolling/Interfaces",
-			"SoulsAI/Variant_SideScrolling/UI"
 		});
 
 		// Uncomment if you are using Slate UI

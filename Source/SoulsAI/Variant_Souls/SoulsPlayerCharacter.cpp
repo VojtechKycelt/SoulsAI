@@ -13,7 +13,6 @@
 #include "AI/EnemyCharacter.h"
 #include "SoulsAI.h"
 
-// Sets default values
 ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 {
 	// Don't rotate when the controller rotates. Let that just affect the camera.
@@ -42,14 +41,17 @@ ASoulsPlayerCharacter::ASoulsPlayerCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 	
+	// Bind Montage Ended events to appropriate functions
 	OnAttackMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::AttackMontageEnded);
 	OnGetHitMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::GetHitMontageEnded);
 	OnUseItemMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::UseItemMontageEnded);
 	OnRollMontageEnded.BindUObject(this, &ASoulsPlayerCharacter::RollMontageEnded);
 	
-	//Stats
+	// Stats
 	CurrentHP = MaxHP;
+	CurrentStamina = MaxStamina;
 	CurrentDamage = LightAttackDamage;
+	CurrentHealFlasksCount = MaxHealFlasksCount;
 }
 
 void ASoulsPlayerCharacter::CheckCachedInput()
@@ -172,13 +174,13 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 	case ECameraState::Locked:
 		if (!LockedTarget || (FVector::Dist(GetActorLocation(), LockedTarget->GetActorLocation()) > LockOnRadius))
 		{
-			TryLockOn();
+			SwitchCameraState();
 			break;
 		} else if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(LockedTarget))
 		{
 			if (EnemyTarget->bIsDead)
 			{
-				TryLockOn();
+				SwitchCameraState();
 				break;
 			}
 		}
@@ -305,7 +307,7 @@ void ASoulsPlayerCharacter::FindLockOnTarget()
     LockedTarget = BestTarget;
 }
 
-void ASoulsPlayerCharacter::TryLockOn()
+void ASoulsPlayerCharacter::SwitchCameraState()
 {
     if (LockedTarget)
     {
@@ -333,7 +335,7 @@ void ASoulsPlayerCharacter::Move(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::MoveCompleted(const FInputActionValue& Value)
 {
-	MovementRight   = 0.0f;
+	MovementRight = 0.0f;
 	MovementForward = 0.0f;
 }
 
@@ -363,11 +365,7 @@ void ASoulsPlayerCharacter::RollPressed(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::Roll()
 {
-	if (CurrentStamina < RollStaminaCost)
-	{
-		return;
-	}
-	if (! CanPerformAction())
+	if (CurrentStamina < RollStaminaCost || ! CanPerformAction())
 	{
 		return;
 	}
@@ -455,13 +453,10 @@ void ASoulsPlayerCharacter::LightAttackPressed(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::LightAttack()
 {
-	if (! CanPerformAction()) return;
-	
-	if (CurrentStamina < LightAttackStaminaCost)
+	if (! CanPerformAction() || CurrentStamina < LightAttackStaminaCost)
 	{
 		return;
 	}
-	
 	CurrentDamage = LightAttackDamage;
 	
 	 if (CurrentComboIndex == 0 && !bIsAttacking) 
@@ -489,42 +484,35 @@ void ASoulsPlayerCharacter::HeavyAttackPressed(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::HeavyAttack()
 {
-	if (CurrentStamina < HeavyAttackStaminaCost)
+	if (CurrentStamina < HeavyAttackStaminaCost || !CanPerformAction())
 	{
 		return;
 	}
-
-	if (CanPerformAction())
-	{
-		CurrentDamage = HeavyAttackDamage;
-		bIsAttacking = true;
-		CurrentStamina -= HeavyAttackStaminaCost;
-		AnimInstance->Montage_Play(HeavyAttackAnimMontage);
-		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, HeavyAttackAnimMontage);
-	}
+	
+	CurrentDamage = HeavyAttackDamage;
+	bIsAttacking = true;
+	CurrentStamina -= HeavyAttackStaminaCost;
+	AnimInstance->Montage_Play(HeavyAttackAnimMontage);
+	AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, HeavyAttackAnimMontage);
 }
 
 void ASoulsPlayerCharacter::CheckCombo()
 {
-	if (bShouldContinueCombo)
+	if (! bShouldContinueCombo)
 	{
-		if (CurrentComboIndex == 0)
-		{
-			bIsAttacking = true;
-			AnimInstance->Montage_JumpToSection("Attack2", LightAttackAnimMontage);
-			bShouldContinueCombo = false;
-			bComboInputWindowOpen = false;
-			CurrentComboIndex = 1;
-			CurrentStamina -= LightAttackStaminaCost;
-		} else if (CurrentComboIndex == 1)
-		{
-			bIsAttacking = true;
-			AnimInstance->Montage_JumpToSection("Attack3", LightAttackAnimMontage);
-			bShouldContinueCombo = false;
-			bComboInputWindowOpen = false;
-			CurrentComboIndex = 2;
-			CurrentStamina -= LightAttackStaminaCost;
-		}
+		return;
+	}
+	
+	const int32 SectionCount = AnimInstance->GetCurrentActiveMontage()->GetNumSections();
+	
+	if (CurrentComboIndex < SectionCount - 1)
+	{
+		bIsAttacking = true;
+		AnimInstance->Montage_JumpToSection(ComboSectionNames[CurrentComboIndex + 1], LightAttackAnimMontage);
+		bShouldContinueCombo = false;
+		bComboInputWindowOpen = false;
+		CurrentComboIndex += 1;
+		CurrentStamina -= LightAttackStaminaCost;
 	}
 }
 
@@ -534,33 +522,36 @@ void ASoulsPlayerCharacter::CheckRollAttack()
 	const bool bEnoughStamina = CurrentStamina > LightAttackStaminaCost;
 	const bool bCorrectCachedInput = CachedInputType == ECachedInputType::LightAttack;
 	
-	if (bInputInCachedThreshold && bEnoughStamina && bCorrectCachedInput)
+	if (! bInputInCachedThreshold || ! bEnoughStamina || ! bCorrectCachedInput)
 	{
-		bIsRolling = false;
-		bIsAttacking = true;
-		CurrentStamina -= LightAttackStaminaCost;
-		
-		const int32 SectionIndex = LightAttackAnimMontage->GetSectionIndex(TEXT("Attack3"));
-		if (SectionIndex != INDEX_NONE)
-		{
-			float SectionStart = 0.0f;
-			float SectionEnd   = 0.0f;
-			LightAttackAnimMontage->GetSectionStartAndEndTime(SectionIndex, SectionStart, SectionEnd);
-
-			const float StartTime = SectionStart + 0.2f;
-			CurrentDamage = LightAttackDamage;
-			AnimInstance->Montage_Play(
-				LightAttackAnimMontage,
-				1.1f,
-				EMontagePlayReturnType::MontageLength,
-				StartTime,
-				true);
-			AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
-		} else
-		{
-			UE_LOG(LogSoulsAI, Error, TEXT("[CheckRollAttack] No section found"));
-		}
+		return;
 	}
+	
+	bIsRolling = false;
+	bIsAttacking = true;
+	CurrentStamina -= LightAttackStaminaCost;
+	
+	const int32 SectionIndex = LightAttackAnimMontage->GetSectionIndex(TEXT("Attack3"));
+	if (SectionIndex != INDEX_NONE)
+	{
+		float SectionStart = 0.0f;
+		float SectionEnd   = 0.0f;
+		LightAttackAnimMontage->GetSectionStartAndEndTime(SectionIndex, SectionStart, SectionEnd);
+
+		const float StartTime = SectionStart + 0.2f;
+		CurrentDamage = LightAttackDamage;
+		AnimInstance->Montage_Play(
+			LightAttackAnimMontage,
+			1.1f,
+			EMontagePlayReturnType::MontageLength,
+			StartTime,
+			true);
+		AnimInstance->Montage_SetEndDelegate(OnAttackMontageEnded, LightAttackAnimMontage);
+	} else
+	{
+		UE_LOG(LogSoulsAI, Error, TEXT("[CheckRollAttack] No section found"));
+	}
+	
 }
 
 void ASoulsPlayerCharacter::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -582,37 +573,40 @@ void ASoulsPlayerCharacter::SoulsJump(const FInputActionValue& Value)
 
 void ASoulsPlayerCharacter::CameraTargetLock(const FInputActionValue& Value)
 {
-	TryLockOn();
+	SwitchCameraState();
 }
 
 void ASoulsPlayerCharacter::DoMove(float Right, float Forward)
 {
-	if (GetController() != nullptr)
+	if (GetController() == nullptr)
 	{
-		MovementRight = Right;
-		MovementForward = Forward;
-		if (CameraState == ECameraState::Locked) {
-			// Use camera forward projected onto horizontal plane
-			FVector CameraForward = FollowCamera->GetForwardVector();
-			CameraForward.Z = 0.f;
-			CameraForward.Normalize();
-			AddMovementInput(CameraForward, Forward);
-			
-			FVector CameraRight = FollowCamera->GetRightVector();
-			CameraRight.Z = 0.f;
-			CameraRight.Normalize();
-			AddMovementInput(CameraRight, Right);
-		} else {
-			// find out which way is forward, get forward vector, get right vector
-			const FRotator YawRotation(0, GetController()->GetControlRotation().Yaw, 0);
-			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-			// add movement
-			AddMovementInput(ForwardDirection, Forward);
-			AddMovementInput(RightDirection, Right);
-		}
+		return;
 	}
+	
+	MovementRight = Right;
+	MovementForward = Forward;
+	if (CameraState == ECameraState::Locked) {
+		// Use camera forward projected onto horizontal plane
+		FVector CameraForward = FollowCamera->GetForwardVector();
+		CameraForward.Z = 0.f;
+		CameraForward.Normalize();
+		AddMovementInput(CameraForward, Forward);
+		
+		FVector CameraRight = FollowCamera->GetRightVector();
+		CameraRight.Z = 0.f;
+		CameraRight.Normalize();
+		AddMovementInput(CameraRight, Right);
+	} else {
+		// find out which way is forward, get forward vector, get right vector
+		const FRotator YawRotation(0, GetController()->GetControlRotation().Yaw, 0);
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+		// add movement
+		AddMovementInput(ForwardDirection, Forward);
+		AddMovementInput(RightDirection, Right);
+	}
+	
 }
 
 void ASoulsPlayerCharacter::DoLook(float Yaw, float Pitch)
@@ -683,7 +677,7 @@ void ASoulsPlayerCharacter::UseItemMontageEnded(UAnimMontage* Montage, bool bInt
 
 void ASoulsPlayerCharacter::HandleDeath()
 {
-	UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter]: Death!"));
+	// UE_LOG(LogSoulsAI, Warning, TEXT("[ASoulsPlayerCharacter]: Death!"));
 	AnimInstance->Montage_Play(DeathAnimMontage);
 
 	// Disable movement while we are dead

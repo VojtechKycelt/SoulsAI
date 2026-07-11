@@ -12,7 +12,9 @@ class UCameraComponent;
 class UInputAction;
 struct FInputActionValue;
 
-
+/**
+* Types of camera state.
+*/
 UENUM(BlueprintType)
 enum class ECameraState : uint8
 {
@@ -21,6 +23,9 @@ enum class ECameraState : uint8
 	Cinematic   UMETA(DisplayName = "Cinematic")
 };
 
+/**
+* Types of cached input for input buffering.
+*/
 UENUM(BlueprintType)
 enum class ECachedInputType : uint8
 {
@@ -31,8 +36,7 @@ enum class ECachedInputType : uint8
 };
 
 /**
-* Player-controllable third person character.
-* Implements a controllable orbiting camera.
+* Souls-like player character.
 */
 UCLASS(abstract)
 class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
@@ -47,75 +51,88 @@ class SOULSAI_API ASoulsPlayerCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 	
-	UPROPERTY()
+	/** Actor which camera looks at while in Locked state. */
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	AActor* LockedTarget = nullptr;
 
+	/** Distance in which to look for targets to lock on. */
 	UPROPERTY(EditAnywhere, Category = "Lock On")
 	float LockOnRadius = 1500.f;
 
+	/** Angle in which to look for targets to lock on. */
 	UPROPERTY(EditAnywhere, Category = "Lock On")
 	float LockOnConeHalfAngle = 60.f; // degrees
 
+	/** Switches camera state. */
 	UFUNCTION()
-	void TryLockOn();
-
+	void SwitchCameraState();
+	
+	/** Searches target to lock on within LockOnRadius and LockOnConeHalfAngle. */
 	UFUNCTION()
 	void FindLockOnTarget();
 	
 public:
+	/** Current amount of HP. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float CurrentHP = 100.f;
 	
+	/** Maximum amount of HP. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float MaxHP = 100.f;
 	
+	/** Current amount of stamina. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float CurrentStamina = 100.f;
 	
+	/** Maximum amount of stamina. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float MaxStamina = 100.f;
 	
+	/** Rate at which stamina is recovered. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float StaminaRecoverySpeed = 0.1f;
 	
+	/** Cost of stamina for use of Roll. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float RollStaminaCost = 25.f;
 	
+	/** Cost of stamina for use of LightAttack. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float LightAttackStaminaCost = 30.f;
 	
+	/** Cost of stamina for use of HeavyAttack. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float HeavyAttackStaminaCost = 40.f;
 	
-	// Damage while performing LightAttack.
+	/** Damage while performing LightAttack. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float LightAttackDamage = 10.f;
 	
-	// Damage while performing HeavyAttack.
+	/** Damage while performing HeavyAttack. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float HeavyAttackDamage = 20.f;
 
-	// Current Damage target takes while getting hit.
+	/** Current Damage target takes while getting hit. */
 	UPROPERTY(BlueprintReadOnly)
 	float CurrentDamage = 10.f;
 	
-	// Base movement speed when not using item.
+	/** Base movement speed when not using item. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float BaseMovementSpeed = 500.0f;
 	
-	// Base movement speed when not using item.
+	/** Base movement speed when using item. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float UsingItemMovementSpeed = 300.0f;
 	
-	// Base movement speed when not using item.
+	/** Max heal flasks count. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	int32 MaxHealFlasksCount = 5;
 	
-	// Base movement speed when not using item.
+	/** Current heal flask count. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	int32 CurrentHealFlasksCount = 5;
 	
-	// Base movement speed when not using item.
+	/** Health restored when using flask. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
 	float HealthRestoredPerFlash = 30.0f;
 	
@@ -162,21 +179,22 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Animation | Item")
 	UAnimMontage* DrinkAnimMontage;
 
-	/** Names of the AnimMontage sections that correspond to each stage of the combo attack */
+	/** Names of the AnimMontage sections that correspond to each stage of the combo attack. */
 	UPROPERTY(EditAnywhere, Category="Melee Attack|Combo")
 	TArray<FName> ComboSectionNames;
 	
+	/** Animation instance pointer to call montages from code. */
 	UPROPERTY()
 	UAnimInstance* AnimInstance;
 	
-	/** Attack montage ended delegate */
+	/** Montage ended delegate */
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnMontageEnded OnGetHitMontageEnded;
 	FOnMontageEnded OnUseItemMontageEnded;
 	FOnMontageEnded OnRollMontageEnded;
 
 public:
-	/** Whether mid-combo attack input press plays another section of combo montage. */
+	/** Whether combo input window is open for player to press. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bComboInputWindowOpen = false;
 	
@@ -184,6 +202,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 CurrentComboIndex = 0;
 	
+	/** Whether mid-combo attack input press was registered and should play another section of combo montage. */
 	bool bShouldContinueCombo = false;
 	
 	/** Type of cached input. */
@@ -209,19 +228,19 @@ public:
 	/** Called on montage ended delegates to check if any buffered input can be executed. */
 	void CheckCachedInput();
 	
-	// If any attack animation is in progress.
+	/** If any attack animation is in progress. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation state")
 	bool bIsAttacking = false;
 	
-	// If character is currently recovering after taking damage.
+	/** If character is currently recovering after taking damage. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
 	bool bIsRecovering = false;
 	
-	// If character is currently rolling and can not be damaged.
+	/** If character is currently healing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
 	bool bIsHealing = false;
 	
-	// If character is currently rolling and can not be damaged.
+	/** If character is currently rolling and can not be damaged. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation State")
 	bool bIsRolling = false;
 	
@@ -248,10 +267,11 @@ protected:
 	void RollPressed(const FInputActionValue& Value);
 	void Roll();
 	
-	/** Called when RollAction input is pressed. */
+	/** Called when UseItem input is pressed. */
 	void UseItemPressed(const FInputActionValue& Value);
 	void UseItem();
 	
+	/** Event called when interrupted while using item. */
 	UFUNCTION(BlueprintImplementableEvent)
 	void UseItemInterrupted();
 	
@@ -263,31 +283,32 @@ protected:
 	void HeavyAttackPressed(const FInputActionValue& Value);
 	void HeavyAttack();
 
-	/** Wrapper function for Jump to decline jump if there is conditions preventing it (like rolling) */
+	/** Wrapper function for Jump to decline jump if there is conditions preventing it (like rolling). */
 	void SoulsJump(const FInputActionValue& Value);
 	
-	/** Called for changing camera state */
+	/** Called for changing camera state. */
 	void CameraTargetLock(const FInputActionValue& Value);
 	
+	/** Events called when montage ended. */
 	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	
 	void GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	
 	void UseItemMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	
 	void RollMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
+	/** Current camera state. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera")
 	ECameraState CameraState = ECameraState::Default;
 	
+	/** Current movement right input. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
 	float MovementRight = 0.0f;
 	
+	/** Current movement forward input. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
 	float MovementForward = 0.0f;
 
 public:
-	// Sets default values for this character's properties
+	/** Sets default values for this character's properties */
 	ASoulsPlayerCharacter();
 
 	/** Handles move inputs from either controls or UI interfaces */
@@ -302,19 +323,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void DoJumpStart();
 
-	/** Handles jump pressed inputs from either controls or UI interfaces */
+	/** Handles jump end. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void DoJumpEnd();
 	
+	/** Called when notify in multi-section combo montage is called to check if we should continue combo. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void CheckCombo();
 	
+	/** Called when notify in roll montage is called to check if we should perfrom roll attack. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void CheckRollAttack();
 	
+	/** Called when character is hit by enemy. */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void GetHit(const float Damage);
 	
+	/** Handles death when current hp is 0. */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void HandleDeath();
 	
