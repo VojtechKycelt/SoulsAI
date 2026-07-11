@@ -198,17 +198,18 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 					DeltaTime, 
 					GetCharacterMovement()->RotationRate.Yaw));
 		}
-		
-		// Camera looks at enemy
-		const FRotator FollowCamTargetRotation = FRotator((LockedTarget->GetActorLocation() - FollowCamera->GetComponentLocation()).Rotation());
-		FollowCamera->SetWorldRotation(FMath::RInterpTo(FollowCamera->GetComponentRotation(), FollowCamTargetRotation, DeltaTime, 10.f));
-		
-		// Camera positioned behind players back, slightly up (- pitch)
-		FRotator CamBoomTargetRotation = FRotator((LockedTarget->GetActorLocation() - GetActorLocation()).Rotation());
-		CamBoomTargetRotation.Pitch -= 30;
-		Controller->SetControlRotation(FMath::RInterpTo(Controller->GetControlRotation(), CamBoomTargetRotation, DeltaTime, 10.f));
-		
-		break;
+		{
+			// Camera looks at enemy
+			const FRotator FollowCamTargetRotation = FRotator((LockedTarget->GetActorLocation() - FollowCamera->GetComponentLocation()).Rotation());
+			FollowCamera->SetWorldRotation(FMath::RInterpTo(FollowCamera->GetComponentRotation(), FollowCamTargetRotation, DeltaTime, 10.f));
+			
+			// Camera positioned behind players back, slightly up (- pitch)
+			FRotator CamBoomTargetRotation = FRotator((LockedTarget->GetActorLocation() - GetActorLocation()).Rotation());
+			CamBoomTargetRotation.Pitch -= 30;
+			Controller->SetControlRotation(FMath::RInterpTo(Controller->GetControlRotation(), CamBoomTargetRotation, DeltaTime, 10.f));
+			
+			break;
+		}
 	default:
 		break;
 	}
