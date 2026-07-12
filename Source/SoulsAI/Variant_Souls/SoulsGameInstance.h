@@ -17,4 +17,33 @@ class SOULSAI_API USoulsGameInstance : public UGameInstance
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bDebugUIEnabled = false;
+	
+	/** Enemy */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float EnemyTimeDilation = 1.0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float EnemyDelayAfterAttack = 3.0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool bStateTreeDisabled = false;
+	
+	/** Player */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool bOverridePlayerStats = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool bPlayerInvincible = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float PlayerMaxHP = 300.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float PlayerMaxStamina = 300.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float PlayerLightAttackDamage = 50.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float PlayerHeavyAttackDamage = 100.0f;
 };
