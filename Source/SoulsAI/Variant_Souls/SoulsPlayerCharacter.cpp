@@ -456,6 +456,8 @@ void ASoulsPlayerCharacter::UseItem()
 
 void ASoulsPlayerCharacter::RollMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	bIsRolling = false;   // edge case when the end notify was skipped by an interrupt
+
 	if (bInterrupted)
 	{
 		return;
@@ -676,7 +678,9 @@ void ASoulsPlayerCharacter::GetHit(const float Damage)
 
 void ASoulsPlayerCharacter::GetHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (bInterrupted)
+	// If a newer hit reaction is already playing, this callback belongs to the
+	// reaction it interrupted, let the newer one own the recovery state.
+	if (bInterrupted && AnimInstance->Montage_IsPlaying(GetHitAnimMontage))
 	{
 		return;
 	}
