@@ -94,6 +94,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	EFaction Faction = EFaction::Hostile;
 	
+	/** Event called when interrupted while using item. */
+	UFUNCTION(BlueprintImplementableEvent)
+	void SwitchLockedTargetWidgetVisiblity(bool enable);
+	
 protected:
 	/** Selected target to look at / attack. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))

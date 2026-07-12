@@ -176,11 +176,11 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		{
 			SwitchCameraState();
 			break;
-		} else if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(LockedTarget))
+		} else if (AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(LockedTarget))
 		{
 			if (EnemyTarget->bIsDead)
 			{
-				// SwitchCameraState();
+				EnemyTarget->SwitchLockedTargetWidgetVisiblity(false);
 				LockedTarget = nullptr;
 				FindLockOnTarget();
 				break;
@@ -309,6 +309,14 @@ void ASoulsPlayerCharacter::FindLockOnTarget()
     }
 
     LockedTarget = BestTarget;
+	
+	if (BestTarget)
+	{
+		if (AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(BestTarget))
+		{
+			EnemyTarget->SwitchLockedTargetWidgetVisiblity(true);
+		};
+	}
 }
 
 void ASoulsPlayerCharacter::SwitchCameraState()
@@ -316,6 +324,10 @@ void ASoulsPlayerCharacter::SwitchCameraState()
     if (LockedTarget)
     {
         CameraState = ECameraState::Default;
+    	if (AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(LockedTarget))
+    	{
+    		EnemyTarget->SwitchLockedTargetWidgetVisiblity(false);
+    	}
         LockedTarget = nullptr;
         return;
     }
