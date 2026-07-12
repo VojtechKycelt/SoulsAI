@@ -39,42 +39,6 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	{
 		return;
 	}
-	// // Update UI
-	// if (SelectedTarget)
-	// {
-	// 	DrawDebugString(
-	// 		GetWorld(),
-	// 		GetActorLocation() + FVector(0.f, 0, 100.f), // above head
-	// 		FString::Printf(TEXT("Distance: %.1f"),
-	// 			FVector::Dist(GetActorLocation(), SelectedTarget->GetActorLocation())),
-	// 		nullptr,
-	// 		FColor::Cyan,
-	// 		0.f,     // duration (0 = one frame, so call every tick)
-	// 		true     // draw shadow
-	// 	);
-	// }
-	// DrawDebugString(
-	// 	GetWorld(),
-	// 	GetActorLocation() + FVector(0, 0, 200.f), // above head
-	// 	UEnum::GetDisplayValueAsText(SelectedGoal).ToString(),
-	// 	nullptr,
-	// 	FColor::Green,
-	// 	0.f,     // duration (0 = one frame, so call every tick)
-	// 	true     // draw shadow
-	// );
-	//
-	// for (size_t i = 0; i < Subgoals.Num(); ++i)
-	// {
-	// 	DrawDebugString(
-	// 	GetWorld(),
-	// 	GetActorLocation() + FVector(0, 0, 250.f + (i * 100.f)), // above head
-	// 	UEnum::GetDisplayValueAsText(Subgoals[i]).ToString(),
-	// 	nullptr,
-	// 	FColor::White,
-	// 	0.f,     // duration (0 = one frame, so call every tick)
-	// 	true     // draw shadow
-	// );
-	// }
 	
 	if (! SelectedTarget)
 	{

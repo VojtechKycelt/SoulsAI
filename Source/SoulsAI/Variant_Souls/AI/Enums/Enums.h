@@ -19,3 +19,14 @@ enum class EGoal : uint8
 	,Recover            UMETA(DisplayName = "Recover")
 };
 
+/**
+ * Enum for factions/teams of enemies.
+ */
+UENUM(BlueprintType)
+enum class EFaction : uint8
+{
+	Hostile				UMETA(DisplayName = "Hostile")
+	,Neutral            UMETA(DisplayName = "Neutral")
+	,Friendly           UMETA(DisplayName = "Friendly")
+};
+

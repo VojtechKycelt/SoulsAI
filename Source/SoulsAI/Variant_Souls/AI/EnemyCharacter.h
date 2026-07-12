@@ -90,6 +90,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AI")
 	int32 AttackActionCounter = 0;
 	
+	/** Selected Faction to team up with other enemies. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	EFaction Faction = EFaction::Hostile;
+	
 protected:
 	/** Selected target to look at / attack. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))

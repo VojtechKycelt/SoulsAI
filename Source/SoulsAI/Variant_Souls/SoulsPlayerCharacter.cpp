@@ -180,7 +180,9 @@ void ASoulsPlayerCharacter::Tick(float DeltaTime)
 		{
 			if (EnemyTarget->bIsDead)
 			{
-				SwitchCameraState();
+				// SwitchCameraState();
+				LockedTarget = nullptr;
+				FindLockOnTarget();
 				break;
 			}
 		}
@@ -260,6 +262,15 @@ void ASoulsPlayerCharacter::FindLockOnTarget()
     float BestDot = -1.f; // dot product: 1 = directly ahead, -1 = directly behind
     for (AActor* Actor : OverlappedActors)
     {
+    	// If enemy is dead or friendly, ignore it.
+    	if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(Actor))
+        {
+        	if (EnemyTarget->bIsDead || EnemyTarget->Faction == EFaction::Friendly)
+        	{
+        		continue;
+        	}
+        }
+    	
         // Direction from player to this enemy
         const FVector ToEnemy = (Actor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
     	
@@ -288,14 +299,6 @@ void ASoulsPlayerCharacter::FindLockOnTarget()
             continue;
         }
     	
-    	// If enemy is dead, ignore it.
-    	if (const AEnemyCharacter* EnemyTarget = Cast<AEnemyCharacter>(Actor))
-        {
-        	if (EnemyTarget->bIsDead)
-        	{
-        		continue;
-        	}
-        }
     	
         // BestDot = most centered in camera view = BestTarget
         if (Dot > BestDot)
@@ -322,6 +325,9 @@ void ASoulsPlayerCharacter::SwitchCameraState()
     if (LockedTarget)
     {
         CameraState = ECameraState::Locked;
+    } else
+    {
+	    CameraState = ECameraState::Default;
     }
 }
 
